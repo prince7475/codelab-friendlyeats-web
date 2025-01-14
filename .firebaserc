@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "staging": "fir-app-hosting-code-lab"
+  },
+  "targets": {},
+  "etags": {},
+  "dataconnectEmulatorConfig": {}
+}
