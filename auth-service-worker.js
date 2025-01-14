@@ -23,23 +23,35 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(fetchWithFirebaseHeaders(event.request));
 });
 
-async function fetchWithFirebaseHeaders(request) {
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const installations = getInstallations(app);
-  const headers = new Headers(request.headers);
-  const [authIdToken, installationToken] = await Promise.all([
-    getAuthIdToken(auth),
-    getToken(installations),
-  ]);
-  headers.append("Firebase-Instance-ID-Token", installationToken);
-  if (authIdToken) headers.append("Authorization", `Bearer ${authIdToken}`);
-  const newRequest = new Request(request, { headers });
-  return await fetch(newRequest);
-}
-
 async function getAuthIdToken(auth) {
   await auth.authStateReady();
   if (!auth.currentUser) return;
   return await getIdToken(auth.currentUser);
+}
+
+
+async function fetchWithFirebaseHeaders(request) {
+  let authIdToken = await getAuthIdToken();
+  if (!authIdToken) {
+    // sleep for 0.25s
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    authIdToken = await getAuthIdToken();
+  }
+  if (!authIdToken) {
+    // sleep for 0.25s
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    authIdToken = await getAuthIdToken();
+  }
+  if (authIdToken) {
+    const headers = new Headers(request.headers);
+    headers.append("Authorization", `Bearer ${authIdToken}`);
+    request = new Request(request, { headers });
+  }
+  return await fetch(request).catch((reason) => {
+    console.error(reason);
+    return new Response("Fail.", {
+      status: 500,
+      headers: { "Content-Type": "text/html" },
+    });
+  });
 }
