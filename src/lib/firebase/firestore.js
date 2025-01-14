@@ -50,7 +50,7 @@ export async function getRestaurants(db = db, filters = {}) {
 }
 
 export function getRestaurantsSnapshot(cb, filters = {}) {
-	return;
+	return () => {};
 }
 
 export async function getRestaurantById(db, restaurantId) {
