@@ -22,31 +22,38 @@ export function onAuthStateChanged(cb) {
  * @returns {Promise} Promise that resolves when profile is saved
  */
 async function saveUserProfile(user) {
-  if (!user) return;
-
-  const userRef = doc(db, 'users', user.uid);
-  const userSnap = await getDoc(userRef);
-
-  const userData = {
-    uid: user.uid,
-    email: user.email,
-    displayName: user.displayName,
-    photoURL: user.photoURL,
-    lastLoginAt: new Date().toISOString(),
-  };
-
-  // If user doesn't exist, create new profile
-  if (!userSnap.exists()) {
-    userData.createdAt = new Date().toISOString();
-    userData.itemCount = 0; // Track number of wardrobe items
-  }
+  console.log('saveUserProfile', user);
+  if (!user) return null;
 
   try {
+    const userRef = doc(db, 'users', user.uid);
+    const userSnap = await getDoc(userRef);
+
+    const userData = {
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+      lastLoginAt: new Date().toISOString(),
+    };
+
+    // If user doesn't exist, create new profile
+    if (!userSnap.exists()) {
+      userData.createdAt = new Date().toISOString();
+      userData.itemCount = 0; // Track number of wardrobe items
+    }
+
     await setDoc(userRef, userData, { merge: true });
     return userData;
   } catch (error) {
     console.error('Error saving user profile:', error);
-    throw new Error('Failed to save user profile');
+    // Return basic user data even if saving to Firestore fails
+    return {
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+    };
   }
 }
 
@@ -61,15 +68,17 @@ export async function signInWithGoogle() {
   try {
     const result = await signInWithPopup(auth, provider);
     const userData = await saveUserProfile(result.user);
-    return userData;
+    return userData || result.user;
   } catch (error) {
     console.error("Error signing in with Google:", error);
     
-    // Provide user-friendly error messages
     if (error.code === 'auth/popup-closed-by-user') {
       throw new Error('Sign in cancelled');
     } else if (error.code === 'auth/popup-blocked') {
       throw new Error('Pop-up blocked by browser');
+    } else if (error.code === 'permission-denied') {
+      // If Firestore permission is denied, still return the user
+      return error.user;
     } else {
       throw new Error('Failed to sign in with Google');
     }
