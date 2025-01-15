@@ -1,1 +1,3 @@
-export const generateOutfit = () => { }
+export const generateOutfit = () => {
+    console.log("generating outfit");
+ }
