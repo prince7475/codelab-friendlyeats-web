@@ -1,27 +1,57 @@
-import RestaurantListings from "@/src/components/old_ReviewItems/RestaurantListings.jsx";
-import { getRestaurants } from "@/src/lib/firebase/firestore.js";
-import { getAuthenticatedAppForUser } from "@/src/lib/firebase/serverApp.js";
-import { getFirestore } from "firebase/firestore";
+'use client';
+
+import { Box, CircularProgress, Container } from '@mui/material';
+import { useAuth } from '@/src/hooks/auth.hooks';
+import LoginForm from '@/src/components/auth/loginForm';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 // Force next.js to treat this route as server-side rendered
 // Without this line, during the build process, next.js will treat this route as static and build a static HTML file for it
 
 export const dynamic = "force-dynamic";
 
-// This line also forces this route to be server-side rendered
-// export const revalidate = 0;
+/**
+ * Landing page component
+ * Shows login form for unauthenticated users
+ * Redirects authenticated users to wardrobe
+ */
+export default function Home() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading } = useAuth();
 
-export default async function Home({ searchParams }) {
-	// Using seachParams which Next.js provides, allows the filtering to happen on the server-side, for example:
-	// ?city=London&category=Indian&sort=Review
-	const {firebaseServerApp} = await getAuthenticatedAppForUser();
-	const restaurants = await getRestaurants(getFirestore(firebaseServerApp), searchParams);
-	return (
-		<main className="main__home">
-			<RestaurantListings
-				initialRestaurants={restaurants}
-				searchParams={searchParams}
-			/>
-		</main>
-	);
+  // Redirect authenticated users to wardrobe
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/wardrobe');
+    }
+  }, [isAuthenticated, router]);
+
+  console.log('isAuthenticated', isAuthenticated);
+  console.log('isLoading', isLoading);
+  // Show loading state
+  if (isLoading) {
+    return (
+      <Container>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: 'calc(100vh - 64px)', // Subtract header height
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      </Container>
+    );
+  }
+
+  // Show login form for unauthenticated users
+  if (!isAuthenticated) {
+    return <LoginForm />;
+  }
+
+  // This will not be rendered due to redirect
+  return null;
 }
