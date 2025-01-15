@@ -9,10 +9,10 @@ import {
   getRestaurantSnapshotById,
 } from "@/src/lib/firebase/firestore.js";
 import {useUser} from '@/src/lib/getUser'
-import RestaurantDetails from "@/src/components/RestaurantDetails.jsx";
+import RestaurantDetails from "@/src/components/old_ReviewItems/RestaurantDetails.jsx";
 import { updateRestaurantImage } from "@/src/lib/firebase/storage.js";
 
-const ReviewDialog = dynamic(() => import('@/src/components/ReviewDialog.jsx'));
+const ReviewDialog = dynamic(() => import('@/src/components/old_ReviewItems/ReviewDialog.jsx'));
 
 export default function Restaurant({
   id,

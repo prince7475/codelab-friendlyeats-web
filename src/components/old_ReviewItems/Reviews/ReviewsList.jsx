@@ -2,8 +2,8 @@
 
 import React from "react";
 import { getReviewsByRestaurantId } from "@/src/lib/firebase/firestore.js";
-import ReviewsListClient from "@/src/components/Reviews/ReviewsListClient";
-import { ReviewSkeleton } from "@/src/components/Reviews/Review";
+import ReviewsListClient from "@/src/components/old_ReviewItems/Reviews/ReviewsListClient";
+import { ReviewSkeleton } from "@/src/components/old_ReviewItems/Reviews/Review";
 import { getFirestore } from "firebase/firestore";
 import { getAuthenticatedAppForUser } from "@/src/lib/firebase/serverApp";
 

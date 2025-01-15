@@ -2017,6 +2017,9 @@
     }
     return void 0;
   }
+  function getIdToken(user, forceRefresh = false) {
+    return getModularInstance(user).getIdToken(forceRefresh);
+  }
   async function getIdTokenResult(user, forceRefresh = false) {
     const userInternal = getModularInstance(user);
     const token = await userInternal.getIdToken(forceRefresh);
@@ -6796,8 +6799,34 @@
       return;
     event.respondWith(fetchWithFirebaseHeaders(event.request));
   });
+  async function getAuthIdToken(auth) {
+    await auth.authStateReady();
+    if (!auth.currentUser)
+      return;
+    return await getIdToken(auth.currentUser);
+  }
   async function fetchWithFirebaseHeaders(request) {
-    return await fetch(request);
+    let authIdToken = await getAuthIdToken();
+    if (!authIdToken) {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      authIdToken = await getAuthIdToken();
+    }
+    if (!authIdToken) {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      authIdToken = await getAuthIdToken();
+    }
+    if (authIdToken) {
+      const headers = new Headers(request.headers);
+      headers.append("Authorization", `Bearer ${authIdToken}`);
+      request = new Request(request, { headers });
+    }
+    return await fetch(request).catch((reason) => {
+      console.error(reason);
+      return new Response("Fail.", {
+        status: 500,
+        headers: { "Content-Type": "text/html" }
+      });
+    });
   }
 })();
 /*! Bundled license information:
@@ -7344,24 +7373,6 @@ firebase/app/dist/esm/index.esm.js:
   (**
    * @license
    * Copyright 2021 Google LLC
-   *
-   * Licensed under the Apache License, Version 2.0 (the "License");
-   * you may not use this file except in compliance with the License.
-   * You may obtain a copy of the License at
-   *
-   *   http://www.apache.org/licenses/LICENSE-2.0
-   *
-   * Unless required by applicable law or agreed to in writing, software
-   * distributed under the License is distributed on an "AS IS" BASIS,
-   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   * See the License for the specific language governing permissions and
-   * limitations under the License.
-   *)
-
-@firebase/auth/dist/esm2017/index-68602d24.js:
-  (**
-   * @license
-   * Copyright 2020 Google LLC
    *
    * Licensed under the Apache License, Version 2.0 (the "License");
    * you may not use this file except in compliance with the License.

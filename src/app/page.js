@@ -1,4 +1,4 @@
-import RestaurantListings from "@/src/components/RestaurantListings.jsx";
+import RestaurantListings from "@/src/components/old_ReviewItems/RestaurantListings.jsx";
 import { getRestaurants } from "@/src/lib/firebase/firestore.js";
 import { getAuthenticatedAppForUser } from "@/src/lib/firebase/serverApp.js";
 import { getFirestore } from "firebase/firestore";

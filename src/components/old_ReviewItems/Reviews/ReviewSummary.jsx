@@ -1,6 +1,6 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-import { getReviewsByRestaurantId } from "@/src/lib/firebase/firestore.js";
 import { getAuthenticatedAppForUser } from "@/src/lib/firebase/serverApp";
+import { getReviewsByRestaurantId } from "@/src/lib/firebase/firestore";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getFirestore } from "firebase/firestore";
 
 export async function GeminiSummary({ restaurantId }) {
@@ -10,7 +10,7 @@ export async function GeminiSummary({ restaurantId }) {
       restaurantId
   );
 
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const genAI = new GoogleGenerativeAI(process.env.NEXT_PRIVATE_GEMINI_API_KEY);
   const model = genAI.getGenerativeModel({ model: "gemini-pro"});
 
   const reviewSeparator = "@";
@@ -37,4 +37,12 @@ export async function GeminiSummary({ restaurantId }) {
       console.error(e);
       return <p>Error contacting Gemini</p>;
   }
+}
+
+export function GeminiSummarySkeleton() {
+  return (
+    <div className="restaurant__review_summary">
+      <p>✨ Summarizing reviews with Gemini...</p>
+    </div>
+  );
 }

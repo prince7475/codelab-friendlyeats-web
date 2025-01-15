@@ -1,5 +1,5 @@
 import "@/src/app/styles.css";
-import Header from "@/src/components/Header.jsx";
+import Header from "@/src/components/old_ReviewItems/Header.jsx";
 import { getAuthenticatedAppForUser } from "@/src/lib/firebase/serverApp";
 // Force next.js to treat this route as server-side rendered
 // Without this line, during the build process, next.js will treat this route as static and build a static HTML file for it
@@ -19,7 +19,6 @@ export default async function RootLayout({ children }) {
 
       <body>
             <Header initialUser={currentUser?.toJSON()}/>
-
         <main>{children}</main>
       </body>
 

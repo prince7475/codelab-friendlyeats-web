@@ -1,23 +1,23 @@
-import Restaurant from "@/src/components/Restaurant.jsx";
+import Restaurant from "@/src/components/old_ReviewItems/Restaurant.jsx";
 import { Suspense } from "react";
 import { getRestaurantById } from "@/src/lib/firebase/firestore.js";
-import { getAuthenticatedAppForUser, getAuthenticatedAppForUser as getUser } from "@/src/lib/firebase/serverApp.js";
+import { getAuthenticatedAppForUser } from "@/src/lib/firebase/serverApp.js";
 import ReviewsList, {
   ReviewsListSkeleton,
-} from "@/src/components/Reviews/ReviewsList";
+} from "@/src/components/old_ReviewItems/Reviews/ReviewsList";
 import {
   GeminiSummary,
   GeminiSummarySkeleton,
-} from "@/src/components/Reviews/ReviewSummary";
+} from "@/src/components/old_ReviewItems/Reviews/ReviewSummary";
 import { getFirestore } from "firebase/firestore";
 
-export default async function Home({ params }) {
-  // This is a server component, we can access URL
-	// parameters via Next.js and download the data
-	// we need for this page
-  const { currentUser } = await getUser();
-  const {firebaseServerApp} = await getAuthenticatedAppForUser();
+export default async function RestaurantPage({ params }) {
+  const { currentUser, firebaseServerApp } = await getAuthenticatedAppForUser();
   const restaurant = await getRestaurantById(getFirestore(firebaseServerApp), params.id);
+
+  if (!restaurant) {
+    return <div>Restaurant not found</div>;
+  }
 
   return (
     <main className="main__restaurant">
