@@ -113,7 +113,14 @@ export async function getRestaurantById(db, restaurantId) {
 }
 
 export function getRestaurantSnapshotById(restaurantId, cb) {
-	return;
+  const docRef = doc(db, "restaurants", restaurantId);
+  return onSnapshot(docRef, (doc) => {
+    if (doc.exists()) {
+      cb({ id: doc.id, ...doc.data(), timestamp: doc.data().timestamp.toDate() });
+    } else {
+      console.log("No such document!");
+    }
+  });
 }
 
 export async function getReviewsByRestaurantId(db, restaurantId) {

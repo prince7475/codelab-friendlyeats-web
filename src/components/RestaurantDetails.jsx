@@ -20,6 +20,7 @@ const RestaurantDetails = ({
 					<img
 						className="review"
 						onClick={() => {
+							console.log("open review dialog");
 							setIsOpen(!isOpen);
 						}}
 						src="/review.svg"
