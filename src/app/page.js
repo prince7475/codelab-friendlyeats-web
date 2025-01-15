@@ -2,7 +2,7 @@
 
 import { Box, CircularProgress, Container } from '@mui/material';
 import { useAuth } from '@/src/hooks/auth.hooks';
-import LoginForm from '@/src/components/auth/loginForm';
+import LoginForm from '@/src/components/auth/LoginForm';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
