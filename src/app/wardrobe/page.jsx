@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import ItemGrid from '../../components/wardrobe/ItemGrid';
+import UploadDialog from '../../components/wardrobe/UploadDialog';
 
 // Mock data for testing
 const mockItems = [
@@ -46,9 +47,6 @@ const mockItems = [
   }
 ];
 
-// Placeholder for actual components
-const UploadDialog = () => <div>UploadDialog Placeholder</div>;
-
 export default function Wardrobe() {
   const [isLoading, setIsLoading] = useState(true);
   const [items, setItems] = useState([]);
@@ -68,6 +66,10 @@ export default function Wardrobe() {
   const handleItemClick = (item) => {
     console.log('Card clicked:', item);
     // TODO: Open item details modal
+  };
+
+  const handleUpload = (newItem) => {
+    setItems(prevItems => [newItem, ...prevItems]);
   };
 
   return (
@@ -129,16 +131,11 @@ export default function Wardrobe() {
       )}
 
       {/* Upload Dialog */}
-      {isUploadDialogOpen && (
-        <UploadDialog
-          open={isUploadDialogOpen}
-          onClose={() => setIsUploadDialogOpen(false)}
-          onUpload={(newItem) => {
-            setItems([...items, newItem]);
-            setIsUploadDialogOpen(false);
-          }}
-        />
-      )}
+      <UploadDialog
+        open={isUploadDialogOpen}
+        onClose={() => setIsUploadDialogOpen(false)}
+        onUpload={handleUpload}
+      />
     </Container>
   );
 }

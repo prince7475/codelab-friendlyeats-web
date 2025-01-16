@@ -28,3 +28,24 @@ async function uploadImage(restaurantId, image) {
 
     return await getDownloadURL(newImageRef);
 }
+
+export async function uploadWardrobeImage(userId, image) {
+    try {
+        if (!userId) {
+            throw new Error("No user ID has been provided.");
+        }
+
+        if (!image || !image.name) {
+            throw new Error("A valid image has not been provided.");
+        }
+
+        const filePath = `wardrobe/${userId}/${Date.now()}_${image.name}`;
+        const newImageRef = ref(storage, filePath);
+        await uploadBytesResumable(newImageRef, image);
+
+        return await getDownloadURL(newImageRef);
+    } catch (error) {
+        console.error("Error uploading wardrobe image:", error);
+        throw error;
+    }
+}
