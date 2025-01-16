@@ -10,7 +10,9 @@ import {
     addWardrobeItem, 
     getWardrobeItems, 
     getWardrobeItemsSnapshot,
-    deleteWardrobeItem
+    deleteWardrobeItem,
+    updateWardrobeItem,
+    generateItemMetadata
 } from '@/src/lib/firebase/wardrobe.firestore';
 
 /**
@@ -80,16 +82,19 @@ export function useUploadItem() {
             setIsUploading(true);
             setError(null);
 
-            // Upload image to storage
+            // First analyze the image
+            const metadata = await generateItemMetadata(file);
+
+            // If analysis passes, proceed with upload
             const imageUrl = await uploadWardrobeImage(user.uid, file);
 
             // Create wardrobe item with metadata
-            const newItem = await addWardrobeItem(user.uid, imageUrl);
+            const newItem = await addWardrobeItem(user.uid, imageUrl, metadata);
 
             return newItem;
         } catch (err) {
             console.error('Error uploading item:', err);
-            setError(err.message || 'Failed to upload item');
+            setError('Failed to upload item');
             return null;
         } finally {
             setIsUploading(false);

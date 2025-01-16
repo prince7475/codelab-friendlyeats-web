@@ -15,18 +15,6 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useDeleteWardrobeItem } from '@/src/hooks/wardrobe.hooks';
 
-// Mock data for testing
-export const mockItem = {
-  id: '1',
-  userId: 'user123',
-  imageUrl: 'https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcSY4wzEKvodpYi7yLrW_Az136oG-BjAsPFFNNAb4PmE_CnPB5Pzj7nw6_yC2shsN9cIrPgDOKQBzkhcIFXyxnPh1b1czVuQXtQh1TJ7zvcDJqkBl3GCFCadM64',
-  name: 'Classic White Sneakers',
-  description: 'Versatile white sneakers perfect for casual outfits',
-  category: 'shoes',
-  style: ['casual', 'streetwear'],
-  createdAt: new Date().toISOString(),
-};
-
 export function ItemCardSkeleton() {
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>

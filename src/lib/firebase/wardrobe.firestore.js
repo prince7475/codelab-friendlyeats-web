@@ -12,26 +12,77 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/src/lib/firebase/clientApp";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Mock LLM function that will be replaced with actual LLM integration
-function generateItemMetadata(imageUrl) {
-    // This is a placeholder that returns mock data
-    // In production, this would call an LLM API to analyze the image
-    return {
-        name: "Generated Item Name",
-        description: "This is a generated description for the uploaded item.",
-        category: "others",
-        style: ["casual"],
-    };
+// Export the function for use in hooks
+export async function generateItemMetadata(file) {
+    try {
+        const genAI = new GoogleGenerativeAI("AIzaSyBizf6hwPtSmiVUrtEqcg6apnDewYVDVXw");
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        // Convert file to base64
+        const base64data = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result.split(',')[1]);
+            reader.readAsDataURL(file);
+        });
+
+        // Prepare the prompt
+        const prompt = `Analyze this clothing item image and provide:
+        1. A brief name for the item
+        2. A detailed description of the item
+        3. Style tags (up to 10) that describe this item's style
+        4. A category for this item
+        5. Whether this is a wearable clothing item (true/false)
+        6. A confidence score (0-100) for this analysis
+
+        Return ONLY a JSON object with these exact keys (no markdown formatting):
+        {
+            "name": string,
+            "description": string,
+            "style": string[],
+            "category": string,
+            "isWearable": boolean,
+            "confidenceScore": number
+        }`;
+
+        // Generate content
+        const result = await model.generateContent([
+            prompt,
+            {
+                inlineData: {
+                    mimeType: file.type,
+                    data: base64data
+                }
+            }
+        ]);
+
+        const response = await result.response;
+        const analysisText = response.text();
+        
+        // Extract JSON from markdown if present
+        const jsonMatch = analysisText.match(/```json\n([\s\S]*?)\n```/) || [null, analysisText];
+        const jsonString = jsonMatch[1].trim();
+        
+        // Parse the JSON response
+        const analysis = JSON.parse(jsonString);
+
+        if (!analysis.isWearable) {
+            throw new Error("The uploaded image does not appear to be a wearable clothing item");
+        }
+
+        return analysis;
+    } catch (error) {
+        console.error("Error analyzing item:", error);
+        throw new Error("Failed to analyze clothing item. Please try again.");
+    }
 }
 
-export async function addWardrobeItem(userId, imageUrl) {
+export async function addWardrobeItem(userId, imageUrl, metadata) {
     try {
         if (!userId) throw new Error("User ID is required");
         if (!imageUrl) throw new Error("Image URL is required");
-
-        // Generate metadata using LLM (mock for now)
-        const metadata = generateItemMetadata(imageUrl);
+        if (!metadata) throw new Error("Item metadata is required");
 
         // Create the wardrobe item document in user's subcollection
         const wardrobeRef = collection(db, `users/${userId}/wardrobe_items`);
@@ -42,6 +93,8 @@ export async function addWardrobeItem(userId, imageUrl) {
             description: metadata.description,
             category: metadata.category,
             style: metadata.style,
+            confidenceScore: metadata.confidenceScore,
+            isWearable: metadata.isWearable,
             createdAt: Timestamp.fromDate(new Date()),
         };
 
@@ -49,7 +102,7 @@ export async function addWardrobeItem(userId, imageUrl) {
         
         return {
             id: docRef.id,
-            ...itemData,
+            ...itemData
         };
     } catch (error) {
         console.error("Error adding wardrobe item:", error);
