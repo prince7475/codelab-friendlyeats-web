@@ -56,7 +56,9 @@ export default function ItemCard({ item, onClick }) {
     name,
     description,
     category,
-    style,
+    colors,
+    styles,
+    occasions,
     createdAt
   } = item;
 
@@ -103,12 +105,71 @@ export default function ItemCard({ item, onClick }) {
         <Typography variant="body2" color="text.secondary" paragraph>
           {description}
         </Typography>
-        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-          <Chip label={category} size="small" />
-          {style.map((tag) => (
-            <Chip key={tag} label={tag} size="small" variant="outlined" />
-          ))}
+        
+        {/* Category */}
+        <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+          <Chip label={category} size="small" color="primary" />
         </Stack>
+
+        {/* Colors */}
+        {colors?.length > 0 && (
+          <Box sx={{ mb: 1 }}>
+            <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+              Colors
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {colors.map((color) => (
+                <Chip 
+                  key={color} 
+                  label={color} 
+                  size="small" 
+                  variant="outlined"
+                  sx={{ borderColor: 'primary.light' }}
+                />
+              ))}
+            </Stack>
+          </Box>
+        )}
+
+        {/* Styles */}
+        {styles?.length > 0 && (
+          <Box sx={{ mb: 1 }}>
+            <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+              Styles
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {styles.map((style) => (
+                <Chip 
+                  key={style} 
+                  label={style} 
+                  size="small" 
+                  variant="outlined"
+                  sx={{ borderColor: 'secondary.light' }}
+                />
+              ))}
+            </Stack>
+          </Box>
+        )}
+
+        {/* Occasions */}
+        {occasions?.length > 0 && (
+          <Box sx={{ mb: 1 }}>
+            <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+              Perfect for
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {occasions.map((occasion) => (
+                <Chip 
+                  key={occasion} 
+                  label={occasion} 
+                  size="small" 
+                  variant="outlined"
+                  sx={{ borderColor: 'success.light' }}
+                />
+              ))}
+            </Stack>
+          </Box>
+        )}
       </CardContent>
 
       <CardActions sx={{ justifyContent: 'flex-end' }}>

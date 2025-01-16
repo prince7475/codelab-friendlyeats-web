@@ -31,16 +31,24 @@ export async function generateItemMetadata(file) {
         const prompt = `Analyze this clothing item image and provide:
         1. A brief name for the item
         2. A detailed description of the item
-        3. Style tags (up to 10) that describe this item's style
-        4. A category for this item
-        5. Whether this is a wearable clothing item (true/false)
-        6. A confidence score (0-100) for this analysis
+        3. Colors present in the item (up to 10 color tags)
+        4. Style tags that describe this item's style (up to 10 tags)
+        5. Occasions where this item would be appropriate (up to 10 occasions)
+        6. A category for this item
+        7. Whether this is a wearable clothing item (true/false)
+        8. A confidence score (0-100) for this analysis
+
+        For colors, include both specific shades (e.g., navy blue, forest green) and basic colors (e.g., blue, green).
+        For styles, include descriptive terms like: casual, formal, bohemian, streetwear, etc.
+        For occasions, include specific scenarios like: office work, casual friday, beach day, formal dinner, etc.
 
         Return ONLY a JSON object with these exact keys (no markdown formatting):
         {
             "name": string,
             "description": string,
-            "style": string[],
+            "colors": string[],
+            "styles": string[],
+            "occasions": string[],
             "category": string,
             "isWearable": boolean,
             "confidenceScore": number
@@ -92,7 +100,9 @@ export async function addWardrobeItem(userId, imageUrl, metadata) {
             name: metadata.name,
             description: metadata.description,
             category: metadata.category,
-            style: metadata.style,
+            colors: metadata.colors,
+            styles: metadata.styles,
+            occasions: metadata.occasions,
             confidenceScore: metadata.confidenceScore,
             isWearable: metadata.isWearable,
             createdAt: Timestamp.fromDate(new Date()),
