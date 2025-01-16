@@ -8,10 +8,43 @@ import {
   Box,
   CircularProgress,
   Paper,
-  Stack
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import ItemCard from '../../components/wardrobe/itemCard';
+import ItemGrid from '../../components/wardrobe/ItemGrid';
+
+// Mock data for testing
+const mockItems = [
+  {
+    id: '1',
+    userId: 'user123',
+    imageUrl: 'https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcSY4wzEKvodpYi7yLrW_Az136oG-BjAsPFFNNAb4PmE_CnPB5Pzj7nw6_yC2shsN9cIrPgDOKQBzkhcIFXyxnPh1b1czVuQXtQh1TJ7zvcDJqkBl3GCFCadM64',
+    name: 'Classic White Sneakers',
+    description: 'Versatile white sneakers perfect for casual outfits',
+    category: 'shoes',
+    style: ['casual', 'streetwear'],
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: '2',
+    userId: 'user123',
+    imageUrl: 'https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcSY4wzEKvodpYi7yLrW_Az136oG-BjAsPFFNNAb4PmE_CnPB5Pzj7nw6_yC2shsN9cIrPgDOKQBzkhcIFXyxnPh1b1czVuQXtQh1TJ7zvcDJqkBl3GCFCadM64',
+    name: 'Denim Jacket',
+    description: 'Classic denim jacket that goes with everything',
+    category: 'outerwear',
+    style: ['casual', 'vintage'],
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: '3',
+    userId: 'user123',
+    imageUrl: 'https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcSY4wzEKvodpYi7yLrW_Az136oG-BjAsPFFNNAb4PmE_CnPB5Pzj7nw6_yC2shsN9cIrPgDOKQBzkhcIFXyxnPh1b1czVuQXtQh1TJ7zvcDJqkBl3GCFCadM64',
+    name: 'Black Baseball Cap',
+    description: 'Simple black cap for a sporty look',
+    category: 'accessories',
+    style: ['sporty', 'casual'],
+    createdAt: new Date().toISOString(),
+  }
+];
 
 // Placeholder for actual components
 const UploadDialog = () => <div>UploadDialog Placeholder</div>;
@@ -23,29 +56,19 @@ export default function Wardrobe() {
 
   // Placeholder for actual data fetching
   React.useEffect(() => {
-    // Simulate loading
-    setTimeout(() => {
+    // Simulate loading with longer delay
+    const timer = setTimeout(() => {
+      setItems(mockItems);
       setIsLoading(false);
-    }, 1000);
+    }, 3000); // Increased to 3 seconds
+
+    return () => clearTimeout(timer);
   }, []);
 
-  if (isLoading) {
-    return (
-      <Box 
-        display="flex" 
-        justifyContent="center" 
-        alignItems="center" 
-        minHeight="100vh"
-      >
-        <Stack spacing={2} alignItems="center">
-          <CircularProgress />
-          <Typography variant="h6" color="text.secondary">
-            Loading your wardrobe...
-          </Typography>
-        </Stack>
-      </Box>
-    );
-  }
+  const handleItemClick = (item) => {
+    console.log('Card clicked:', item);
+    // TODO: Open item details modal
+  };
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -60,7 +83,7 @@ export default function Wardrobe() {
       </Box>
 
       {/* Main Content */}
-      {items.length === 0 ? (
+      {!isLoading && items.length === 0 ? (
         <Paper 
           elevation={0} 
           sx={{ 
@@ -97,15 +120,11 @@ export default function Wardrobe() {
               Upload Item
             </Button>
           </Box>
-          <Box display="grid" gridTemplateColumns="repeat(auto-fill, minmax(280px, 1fr))" gap={3}>
-            {items.map((item) => (
-              <ItemCard 
-                key={item.id}
-                item={item}
-                onClick={() => console.log('Card clicked:', item)}
-              />
-            ))}
-          </Box>
+          <ItemGrid 
+            items={items}
+            onItemClick={handleItemClick}
+            isLoading={isLoading}
+          />
         </Box>
       )}
 
