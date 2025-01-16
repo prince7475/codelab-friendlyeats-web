@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Box } from '@mui/material';
-import ItemCard, { ItemCardSkeleton } from './itemCard';
+import ItemCard, { ItemCardSkeleton } from './SignalItemCard';
 
 export default function ItemGrid({ items = [], isLoading = false, onItemClick }) {
   console.log("isLoading", isLoading);
