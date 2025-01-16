@@ -8,9 +8,12 @@ import {
   Box,
   Skeleton,
   Chip,
-  Stack
+  Stack,
+  IconButton,
+  CardActions
 } from '@mui/material';
-// import { formatDistanceToNow } from 'date-fns';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { useDeleteWardrobeItem } from '@/src/hooks/wardrobe.hooks';
 
 // Mock data for testing
 export const mockItem = {
@@ -46,18 +49,29 @@ export function ItemCardSkeleton() {
 }
 
 export default function ItemCard({ item, onClick }) {
+  const { deleteItem, isDeleting } = useDeleteWardrobeItem();
+  
   if (!item) return <ItemCardSkeleton />;
+
+  const handleDelete = async (e) => {
+    e.stopPropagation(); // Prevent card click event
+    try {
+      await deleteItem(item.id);
+    } catch (error) {
+      console.error('Failed to delete item:', error);
+      // You might want to show a snackbar/toast here
+    }
+  };
 
   const {
     imageUrl,
     name,
     description,
     category,
-    style = [],
+    style,
     createdAt
   } = item;
 
-  console.log('image', imageUrl);
   return (
     <Card 
       sx={{ 
@@ -65,19 +79,25 @@ export default function ItemCard({ item, onClick }) {
         display: 'flex', 
         flexDirection: 'column',
         cursor: 'pointer',
+        position: 'relative',
         '&:hover': {
-          transform: 'translateY(-4px)',
-          transition: 'transform 0.2s ease-in-out',
-          boxShadow: 4
+          boxShadow: 6
         }
       }}
-      onClick={onClick}
+      onClick={() => onClick?.(item)}
     >
-      <Box sx={{ position: 'relative', paddingTop: '75%', overflow: 'hidden' }}>
-        <img 
-          src={imageUrl} 
+      <Box
+        sx={{
+          position: 'relative',
+          paddingTop: '75%', // 4:3 aspect ratio
+          backgroundColor: 'grey.100'
+        }}
+      >
+        <Box
+          component="img"
+          src={imageUrl}
           alt={name}
-          style={{
+          sx={{
             position: 'absolute',
             top: 0,
             left: 0,
@@ -87,45 +107,33 @@ export default function ItemCard({ item, onClick }) {
           }}
         />
       </Box>
+      
       <CardContent sx={{ flexGrow: 1 }}>
-        <Typography gutterBottom variant="h6" component="div" noWrap>
+        <Typography variant="h6" component="h2" gutterBottom>
           {name}
         </Typography>
-        <Typography 
-          variant="body2" 
-          color="text.secondary"
-          sx={{
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            mb: 1
-          }}
-        >
+        <Typography variant="body2" color="text.secondary" paragraph>
           {description}
         </Typography>
-        <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 1 }}>
-          <Chip 
-            label={category} 
-            size="small" 
-            color="primary" 
-            variant="outlined"
-          />
-          {style.map((s) => (
-            <Chip
-              key={s}
-              label={s}
-              size="small"
-              color="secondary"
-              variant="outlined"
-            />
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          <Chip label={category} size="small" />
+          {style.map((tag) => (
+            <Chip key={tag} label={tag} size="small" variant="outlined" />
           ))}
         </Stack>
-        <Typography variant="caption" color="text.secondary">
-          Added ago
-        </Typography>
       </CardContent>
+
+      <CardActions sx={{ justifyContent: 'flex-end' }}>
+        <IconButton 
+          onClick={handleDelete}
+          disabled={isDeleting}
+          size="small"
+          color="error"
+          aria-label="delete item"
+        >
+          <DeleteIcon />
+        </IconButton>
+      </CardActions>
     </Card>
   );
 }

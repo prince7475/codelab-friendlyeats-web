@@ -2,11 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useUser } from '@/src/lib/getUser';
-import { uploadWardrobeImage } from '@/src/lib/firebase/storage';
+import { 
+    uploadWardrobeImage, 
+    deleteWardrobeImage 
+} from '@/src/lib/firebase/storage';
 import { 
     addWardrobeItem, 
     getWardrobeItems, 
-    getWardrobeItemsSnapshot 
+    getWardrobeItemsSnapshot,
+    deleteWardrobeItem
 } from '@/src/lib/firebase/wardrobe.firestore';
 
 /**
@@ -99,5 +103,46 @@ export function useUploadItem() {
         isUploading,
         error,
         resetError,
+    };
+}
+
+/**
+ * Hook to handle wardrobe item deletion
+ */
+export function useDeleteWardrobeItem() {
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [error, setError] = useState(null);
+    const user = useUser();
+
+    const deleteItem = async (itemId) => {
+        if (!user?.uid) {
+            setError('User must be logged in to delete items');
+            return;
+        }
+
+        setIsDeleting(true);
+        setError(null);
+
+        try {
+            // Delete from Firestore first to get the image URL
+            const deletedItem = await deleteWardrobeItem(user.uid, itemId);
+            
+            // Then delete the image from storage
+            if (deletedItem.imageUrl) {
+                await deleteWardrobeImage(deletedItem.imageUrl);
+            }
+        } catch (err) {
+            console.error('Error deleting wardrobe item:', err);
+            setError(err.message);
+            throw err;
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    return {
+        deleteItem,
+        isDeleting,
+        error
     };
 }

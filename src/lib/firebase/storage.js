@@ -1,4 +1,4 @@
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 
 import { storage } from "@/src/lib/firebase/clientApp";
 
@@ -46,6 +46,23 @@ export async function uploadWardrobeImage(userId, image) {
         return await getDownloadURL(newImageRef);
     } catch (error) {
         console.error("Error uploading wardrobe image:", error);
+        throw error;
+    }
+}
+
+export async function deleteWardrobeImage(imageUrl) {
+    try {
+        if (!imageUrl) {
+            throw new Error("No image URL has been provided.");
+        }
+
+        // Create a reference to the file to delete
+        const imageRef = ref(storage, imageUrl);
+        await deleteObject(imageRef);
+
+        return true;
+    } catch (error) {
+        console.error("Error deleting wardrobe image:", error);
         throw error;
     }
 }

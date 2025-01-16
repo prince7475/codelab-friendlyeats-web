@@ -8,6 +8,7 @@ import {
     orderBy,
     Timestamp,
     onSnapshot,
+    deleteDoc,
 } from "firebase/firestore";
 
 import { db } from "@/src/lib/firebase/clientApp";
@@ -116,6 +117,33 @@ export async function getWardrobeItemById(userId, itemId) {
         };
     } catch (error) {
         console.error("Error getting wardrobe item:", error);
+        throw error;
+    }
+}
+
+export async function deleteWardrobeItem(userId, itemId) {
+    try {
+        if (!userId) throw new Error("User ID is required");
+        if (!itemId) throw new Error("Item ID is required");
+
+        const itemRef = doc(db, `users/${userId}/wardrobe_items/${itemId}`);
+        
+        // Get the item first to retrieve the image URL
+        const itemSnap = await getDoc(itemRef);
+        if (!itemSnap.exists()) {
+            throw new Error("Item not found");
+        }
+
+        // Delete the document
+        await deleteDoc(itemRef);
+        
+        // Return the deleted item's data (including imageUrl) for cleanup
+        return {
+            id: itemId,
+            ...itemSnap.data()
+        };
+    } catch (error) {
+        console.error("Error deleting wardrobe item:", error);
         throw error;
     }
 }
