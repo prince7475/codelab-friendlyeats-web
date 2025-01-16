@@ -6,62 +6,16 @@ import {
   Typography,
   Button,
   Box,
-  CircularProgress,
   Paper,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import ItemGrid from '../../components/wardrobe/ItemGrid';
 import UploadDialog from '../../components/wardrobe/UploadDialog';
-
-// Mock data for testing
-const mockItems = [
-  {
-    id: '1',
-    userId: 'user123',
-    imageUrl: 'https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcSY4wzEKvodpYi7yLrW_Az136oG-BjAsPFFNNAb4PmE_CnPB5Pzj7nw6_yC2shsN9cIrPgDOKQBzkhcIFXyxnPh1b1czVuQXtQh1TJ7zvcDJqkBl3GCFCadM64',
-    name: 'Classic White Sneakers',
-    description: 'Versatile white sneakers perfect for casual outfits',
-    category: 'shoes',
-    style: ['casual', 'streetwear'],
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    userId: 'user123',
-    imageUrl: 'https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcSY4wzEKvodpYi7yLrW_Az136oG-BjAsPFFNNAb4PmE_CnPB5Pzj7nw6_yC2shsN9cIrPgDOKQBzkhcIFXyxnPh1b1czVuQXtQh1TJ7zvcDJqkBl3GCFCadM64',
-    name: 'Denim Jacket',
-    description: 'Classic denim jacket that goes with everything',
-    category: 'outerwear',
-    style: ['casual', 'vintage'],
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    userId: 'user123',
-    imageUrl: 'https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcSY4wzEKvodpYi7yLrW_Az136oG-BjAsPFFNNAb4PmE_CnPB5Pzj7nw6_yC2shsN9cIrPgDOKQBzkhcIFXyxnPh1b1czVuQXtQh1TJ7zvcDJqkBl3GCFCadM64',
-    name: 'Black Baseball Cap',
-    description: 'Simple black cap for a sporty look',
-    category: 'accessories',
-    style: ['sporty', 'casual'],
-    createdAt: new Date().toISOString(),
-  }
-];
+import { useWardrobeItems } from '@/src/hooks/wardrobe.hooks';
 
 export default function Wardrobe() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [items, setItems] = useState([]);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
-
-  // Placeholder for actual data fetching
-  React.useEffect(() => {
-    // Simulate loading with longer delay
-    const timer = setTimeout(() => {
-      setItems(mockItems);
-      setIsLoading(false);
-    }, 3000); // Increased to 3 seconds
-
-    return () => clearTimeout(timer);
-  }, []);
+  const { items, isLoading } = useWardrobeItems();
 
   const handleItemClick = (item) => {
     console.log('Card clicked:', item);
@@ -69,8 +23,13 @@ export default function Wardrobe() {
   };
 
   const handleUpload = (newItem) => {
-    setItems(prevItems => [newItem, ...prevItems]);
+    // This function is not defined in the provided code edit, but it was present in the original code.
+    // If you want to keep the functionality, you should define it here.
+    // For now, I'm leaving it as a comment.
+    // setItems(prevItems => [newItem, ...prevItems]);
   };
+
+  console.log("wardrobe isLoading", isLoading)
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>

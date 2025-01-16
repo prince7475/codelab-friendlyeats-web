@@ -15,62 +15,35 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import { uploadWardrobeImage } from '@/src/lib/firebase/storage';
-import { useUser } from '@/src/lib/getUser';
+import { useUploadItem } from '@/src/hooks/wardrobe.hooks';
 
-export default function UploadDialog({ open, onClose, onUpload }) {
+export default function UploadDialog({ open, onClose }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [error, setError] = useState(null);
-  const user = useUser();
+  const { uploadItem, isUploading, error, resetError } = useUploadItem();
 
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
     if (file) {
       setSelectedFile(file);
       setPreviewUrl(URL.createObjectURL(file));
-      setError(null);
+      resetError();
     }
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) {
-      setError('Please select an image to upload');
-      return;
-    }
+    if (!selectedFile) return;
 
-    setIsUploading(true);
-    setError(null);
-
-    try {
-      const imageUrl = await uploadWardrobeImage(user.uid, selectedFile);
-      
-      // Create new wardrobe item
-      const newItem = {
-        id: Date.now().toString(), // This should be replaced with a proper ID from the database
-        userId: user.uid,
-        imageUrl,
-        name: 'Generated Name', // This will be replaced with LLM-generated name
-        description: 'Generated Description', // This will be replaced with LLM-generated description
-        category: 'others',
-        style: ['casual'],
-        createdAt: new Date().toISOString(),
-      };
-
-      onUpload(newItem);
+    const newItem = await uploadItem(selectedFile);
+    if (newItem) {
       handleClose();
-    } catch (err) {
-      setError(err.message || 'Failed to upload image');
-      setIsUploading(false);
     }
   };
 
   const handleClose = () => {
     setSelectedFile(null);
     setPreviewUrl(null);
-    setError(null);
-    setIsUploading(false);
+    resetError();
     onClose();
   };
 
@@ -99,7 +72,7 @@ export default function UploadDialog({ open, onClose, onUpload }) {
             severity="error" 
             sx={{ mb: 2 }}
             action={
-              <Button color="inherit" size="small" onClick={() => setError(null)}>
+              <Button color="inherit" size="small" onClick={resetError}>
                 DISMISS
               </Button>
             }
