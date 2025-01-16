@@ -66,3 +66,38 @@ export async function deleteWardrobeImage(imageUrl) {
         throw error;
     }
 }
+
+export async function uploadInspirationImage(userId, image) {
+    try {
+        if (!userId) {
+            throw new Error("No user ID has been provided.");
+        }
+
+        if (!image || !image.name) {
+            throw new Error("A valid image has not been provided.");
+        }
+
+        const filePath = `inspiring/${userId}/${Date.now()}_${image.name}`;
+        const newImageRef = ref(storage, filePath);
+        await uploadBytesResumable(newImageRef, image);
+
+        return await getDownloadURL(newImageRef);
+    } catch (error) {
+        console.error("Error uploading inspiration image:", error);
+        throw error;
+    }
+}
+
+export async function deleteInspirationImage(imageUrl) {
+    try {
+        if (!imageUrl) {
+            throw new Error("No image URL has been provided.");
+        }
+
+        const imageRef = ref(storage, imageUrl);
+        await deleteObject(imageRef);
+    } catch (error) {
+        console.error("Error deleting inspiration image:", error);
+        throw error;
+    }
+}
