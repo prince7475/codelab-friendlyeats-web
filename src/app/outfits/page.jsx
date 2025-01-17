@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import OutfitCollection from '@/src/components/outfits/OutfitCollection';
+import CreateOutfitCollection from '@/src/components/outfits/CreateOutfitCollection';
 
 // Mock data - will be replaced with real data later
 const mockCollection = {
@@ -113,7 +114,21 @@ const mockCollection = {
 
 function OutfitCollectionPage() {
   const [collections, setCollections] = useState([mockCollection]);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const hasCollections = collections.length > 0;
+
+  const handleCreateCollection = async (formData) => {
+    // TODO: Implement actual creation logic
+    console.log('Creating collection:', formData);
+    const newCollection = {
+      id: `collection-${Date.now()}`,
+      name: formData.name,
+      description: formData.description,
+      inspirationImages: formData.inspirationImages.map(img => img.preview),
+      outfits: [],
+    };
+    setCollections(prev => [newCollection, ...prev]);
+  };
 
   const handleEditCollection = (collection) => {
     // TODO: Open edit collection modal
@@ -158,7 +173,7 @@ function OutfitCollectionPage() {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => {/* TODO: Open create collection modal */}}
+            onClick={() => setIsCreateModalOpen(true)}
           >
             Create Collection
           </Button>
@@ -168,7 +183,7 @@ function OutfitCollectionPage() {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => {/* TODO: Open create collection modal */}}
+            onClick={() => setIsCreateModalOpen(true)}
           >
             Create Collection
           </Button>
@@ -188,6 +203,13 @@ function OutfitCollectionPage() {
           ))}
         </Box>
       )}
+
+      {/* Create Collection Modal */}
+      <CreateOutfitCollection
+        open={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSubmit={handleCreateCollection}
+      />
     </Container>
   );
 }
