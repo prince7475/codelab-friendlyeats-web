@@ -23,8 +23,8 @@ service firebase.storage {
 
     // Match user's wardrobe images
     match /wardrobe/{userId}/{imageId} {
-      allow read: if isOwner(userId);
-      allow write: if isOwner(userId)
+      allow read, delete: if isOwner(userId);
+      allow create: if isOwner(userId)
                   && isImageType(request.resource.contentType)
                   && isValidSize();
     }

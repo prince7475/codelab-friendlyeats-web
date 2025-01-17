@@ -1,121 +1,176 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Card,
   CardContent,
   Typography,
   Box,
   Skeleton,
-  IconButton
+  IconButton,
+  CardMedia,
+  CircularProgress,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useDeleteWardrobeItem } from '@/src/hooks/wardrobe.hooks';
 
 export function ItemCardSkeleton() {
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Skeleton
-        variant="rectangular"
-        sx={{
-          width: '100%',
-          paddingTop: '100%', // 1:1 aspect ratio
-        }}
-      />
-      <CardContent>
-        <Skeleton variant="text" width="80%" height={24} />
+      <Box sx={{ position: 'relative', paddingTop: '133%', width: '100%' }}>
+        <Skeleton 
+          variant="rectangular" 
+          sx={{ 
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%'
+          }} 
+        />
+      </Box>
+      <CardContent sx={{ flexGrow: 1, pb: 1 }}>
+        <Skeleton variant="text" width="60%" />
+        <Skeleton variant="text" />
+        <Skeleton variant="text" width="80%" />
       </CardContent>
     </Card>
   );
 }
 
 export default function ItemCard({ item, onClick }) {
-  const { deleteItem, isDeleting } = useDeleteWardrobeItem();
-  
-  if (!item) return <ItemCardSkeleton />;
+  const [menuAnchor, setMenuAnchor] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { deleteItem } = useDeleteWardrobeItem();
 
-  const handleDelete = async (e) => {
-    e.stopPropagation(); // Prevent card click event
+  const handleMenuClick = (event) => {
+    event.stopPropagation();
+    setMenuAnchor(event.currentTarget);
+  };
+
+  const handleMenuClose = (event) => {
+    event?.stopPropagation();
+    setMenuAnchor(null);
+  };
+
+  const handleDelete = async (event) => {
+    event.stopPropagation();
+    setIsDeleting(true);
     try {
       await deleteItem(item.id);
     } catch (error) {
-      console.error('Failed to delete item:', error);
+      console.error('Error deleting item:', error);
     }
+    handleMenuClose();
   };
 
-  const { imageUrl, name } = item;
+  if (!item) return <ItemCardSkeleton />;
 
   return (
     <Card 
       sx={{ 
-        height: '100%', 
-        display: 'flex', 
-        flexDirection: 'column',
         cursor: 'pointer',
         position: 'relative',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
         '&:hover': {
-          boxShadow: 6,
-          '& .delete-button': {
-            opacity: 1
-          }
-        }
+          transform: 'translateY(-4px)',
+          boxShadow: (theme) => theme.shadows[4],
+          transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+        },
       }}
-      onClick={() => onClick?.(item)}
+      onClick={onClick}
     >
       <Box
         sx={{
           position: 'relative',
-          paddingTop: '100%', // 1:1 aspect ratio
-          backgroundColor: 'grey.100'
+          paddingTop: '133%', // 3:4 aspect ratio
+          width: '100%',
+          bgcolor: 'grey.100'
         }}
       >
-        <Box
+        <CardMedia
           component="img"
-          src={imageUrl}
-          alt={name}
+          image={item.imageUrl}
+          alt={item.name}
           sx={{
             position: 'absolute',
             top: 0,
             left: 0,
             width: '100%',
             height: '100%',
-            objectFit: 'cover'
+            objectFit: 'cover',
           }}
         />
-        <IconButton 
-          className="delete-button"
-          onClick={handleDelete}
-          disabled={isDeleting}
+        {isDeleting && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              bgcolor: 'rgba(0, 0, 0, 0.5)',
+            }}
+          >
+            <CircularProgress sx={{ color: 'white' }} />
+          </Box>
+        )}
+        <IconButton
           size="small"
-          color="error"
-          aria-label="delete item"
           sx={{
             position: 'absolute',
             top: 8,
             right: 8,
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            opacity: 0,
-            transition: 'opacity 0.2s',
+            bgcolor: 'rgba(255, 255, 255, 0.8)',
             '&:hover': {
-              backgroundColor: 'rgba(255, 255, 255, 0.95)'
-            }
+              bgcolor: 'rgba(255, 255, 255, 0.95)',
+            },
           }}
+          onClick={handleMenuClick}
         >
-          <DeleteIcon />
+          <MoreVertIcon />
         </IconButton>
       </Box>
-      
-      <CardContent sx={{ py: 1 }}>
-        <Typography 
-          variant="subtitle1" 
-          component="h2"
-          align="center"
-          noWrap
-          sx={{ fontWeight: 500 }}
-        >
-          {name}
+
+      <CardContent sx={{ flexGrow: 1, pb: 1 }}>
+        <Typography variant="subtitle1" noWrap>
+          {item.name}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          minHeight: '2.5em'
+        }}>
+          {item.description}
         </Typography>
       </CardContent>
+
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={handleMenuClose}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <MenuItem onClick={handleDelete} disabled={isDeleting}>
+          <ListItemIcon>
+            <DeleteIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Delete</ListItemText>
+        </MenuItem>
+      </Menu>
     </Card>
   );
 }
