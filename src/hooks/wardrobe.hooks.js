@@ -8,9 +8,9 @@ import {
 } from '@/src/lib/firebase/storage';
 import { 
     addWardrobeItem, 
-    getWardrobeItemsSnapshot,
-    deleteWardrobeItem,
-    generateItemMetadata
+    deleteWardrobeItem, 
+    generateItemMetadata,
+    getWardrobeItemsSnapshot
 } from '@/src/lib/firebase/wardrobe.firestore';
 
 /**
@@ -144,36 +144,53 @@ export function useUploadMultipleItems() {
                         [file.name]: 0
                     }));
 
-                    // Mock metadata for now
-                    const metadata = {
-                        name: `Item ${index + 1}`,
-                        description: 'AI-generated description will go here',
-                        type: 'clothing',
-                        colors: ['black', 'white'], // Mock colors
-                        styles: ['casual'], // Mock styles
-                        occasions: ['everyday'], // Mock occasions
-                        season: 'all',
-                        confidence: 0.95 // Mock confidence score
+                    const metadata = await generateItemMetadata(file);
+
+                    // Upload the image first
+                    const imageUrl = await uploadWardrobeImage(user.uid, file, (progress) => {
+                        setProgress(prev => ({
+                            ...prev,
+                            [file.name]: Math.round(progress * 50) // First 50% is upload
+                        }));
+                    });
+
+                    // Generate metadata using Gemini AI
+                    setProgress(prev => ({
+                        ...prev,
+                        [file.name]: 75 // 75% when starting AI analysis
+                    }));
+
+
+                    // Create wardrobe item with AI-generated metadata
+                    const itemData = {
+                        userId: user.uid,
+                        imageUrl,
+                        name: metadata.name,
+                        description: metadata.description,
+                        category: metadata.category,
+                        colors: metadata.colors,
+                        styles: metadata.styles,
+                        occasions: metadata.occasions,
+                        confidenceScore: metadata.confidenceScore,
+                        isWearable: metadata.isWearable
                     };
 
-                    // Upload the image
-                    const imageUrl = await uploadWardrobeImage(user.uid, file);
+                    // Update progress to show completion of metadata generation
+                    setProgress(prev => ({
+                        ...prev,
+                        [file.name]: 90
+                    }));
 
-                    // Update progress
+                    // Add to Firestore
+                    const result = await addWardrobeItem(itemData);
+
+                    // Update progress to show completion
                     setProgress(prev => ({
                         ...prev,
                         [file.name]: 100
                     }));
 
-                    // Create wardrobe item
-                    const itemData = {
-                        ...metadata,
-                        imageUrl,
-                        userId: user.uid
-                    };
-
-                    // Add to Firestore
-                    return await addWardrobeItem(itemData);
+                    return result;
                 } catch (err) {
                     console.error(`Error uploading file ${file.name}:`, err);
                     // Update progress to show error
