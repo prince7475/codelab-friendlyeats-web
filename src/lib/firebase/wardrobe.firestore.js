@@ -86,33 +86,25 @@ export async function generateItemMetadata(file) {
     }
 }
 
-export async function addWardrobeItem(userId, imageUrl, metadata) {
+export async function addWardrobeItem(itemData) {
     try {
-        if (!userId) throw new Error("User ID is required");
-        if (!imageUrl) throw new Error("Image URL is required");
-        if (!metadata) throw new Error("Item metadata is required");
+        if (!itemData.userId) throw new Error("User ID is required");
+        if (!itemData.imageUrl) throw new Error("Image URL is required");
 
         // Create the wardrobe item document in user's subcollection
-        const wardrobeRef = collection(db, `users/${userId}/wardrobe_items`);
+        const wardrobeRef = collection(db, `users/${itemData.userId}/wardrobe_items`);
         
-        const itemData = {
-            imageUrl,
-            name: metadata.name,
-            description: metadata.description,
-            category: metadata.category,
-            colors: metadata.colors,
-            styles: metadata.styles,
-            occasions: metadata.occasions,
-            confidenceScore: metadata.confidenceScore,
-            isWearable: metadata.isWearable,
-            createdAt: Timestamp.fromDate(new Date()),
+        // Add timestamp to the item data
+        const dataToAdd = {
+            ...itemData,
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now()
         };
 
-        const docRef = await addDoc(wardrobeRef, itemData);
-        
+        const docRef = await addDoc(wardrobeRef, dataToAdd);
         return {
             id: docRef.id,
-            ...itemData
+            ...dataToAdd
         };
     } catch (error) {
         console.error("Error adding wardrobe item:", error);

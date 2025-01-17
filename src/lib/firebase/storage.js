@@ -79,7 +79,6 @@ export async function uploadInspirationImage(userId, image, collectionId = 'new'
         if (!userId) {
             throw new Error("No user ID has been provided.");
         }
-        console.log("uploadInspirationImage - image", image);
         if (!image || !image.name) {
             throw new Error("A valid image has not been provided.");
         }
@@ -104,7 +103,6 @@ export async function uploadInspirationImage(userId, image, collectionId = 'new'
 export async function deleteCollectionImages(userId, collectionId) {
     try {
         const folderRef = ref(storage, `inspiring/${userId}/collection/${collectionId}`);
-        const folderPath = folderRef.fullPath;
         
         // List all files in the collection folder
         const { items } = await listAll(folderRef);

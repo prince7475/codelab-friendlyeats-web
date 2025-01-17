@@ -7,9 +7,11 @@ import {
     addDoc,
     deleteDoc,
     orderBy,
+    Timestamp,
     serverTimestamp,
     onSnapshot,
     updateDoc,
+    arrayUnion,
 } from "firebase/firestore";
 
 import { db } from "@/src/lib/firebase/clientApp";
@@ -174,22 +176,21 @@ export async function deleteOutfitCollection(userId, collectionId) {
  */
 export async function addOutfitToCollection(userId, collectionId, outfitData) {
     try {
-        const collectionRef = doc(db, 'users', userId, 'outfitCollections', collectionId);
-        const docSnap = await getDoc(collectionRef);
+        const docRef = doc(db, 'users', userId, 'outfitCollections', collectionId);
+        const docSnap = await getDoc(docRef);
         
         if (!docSnap.exists()) {
             throw new Error('Collection not found');
         }
 
-        const currentOutfits = docSnap.data().outfits || [];
         const newOutfit = {
             id: `outfit-${Date.now()}`,
-            createdAt: serverTimestamp(),
+            createdAt: Timestamp.fromDate(new Date()),
             ...outfitData
         };
 
-        await updateDoc(collectionRef, {
-            outfits: [...currentOutfits, newOutfit]
+        await updateDoc(docRef, {
+            outfits: arrayUnion(newOutfit)
         });
     } catch (error) {
         console.error('Error adding outfit to collection:', error);

@@ -27,9 +27,7 @@ export function useAuth() {
     let unsubscribed = false;
     
     const unsubscribe = onAuthStateChanged((user) => {
-      if (unsubscribed) return;
-      console.log("Auth state changed:", user);
-      
+      if (unsubscribed) return;      
       if (user) {
         // If we have a user, update the store with their data
         setUser({
