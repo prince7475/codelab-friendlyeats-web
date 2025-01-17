@@ -1,4 +1,4 @@
-import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject, listAll } from "firebase/storage";
 
 import { storage } from "@/src/lib/firebase/clientApp";
 
@@ -67,17 +67,24 @@ export async function deleteWardrobeImage(imageUrl) {
     }
 }
 
-export async function uploadInspirationImage(userId, image) {
+/**
+ * Uploads an inspiration image to Firebase Storage
+ * @param {string} userId - The ID of the user
+ * @param {File} image - The image file to upload
+ * @param {string} collectionId - The ID of the collection (optional for new collections)
+ * @returns {Promise<string>} The download URL of the uploaded image
+ */
+export async function uploadInspirationImage(userId, image, collectionId = 'new') {
     try {
         if (!userId) {
             throw new Error("No user ID has been provided.");
         }
-
+        console.log("uploadInspirationImage - image", image);
         if (!image || !image.name) {
             throw new Error("A valid image has not been provided.");
         }
 
-        const filePath = `inspiring/${userId}/${Date.now()}_${image.name}`;
+        const filePath = `inspiring/${userId}/collection/${collectionId}/${Date.now()}_${image.name}`;
         const newImageRef = ref(storage, filePath);
         await uploadBytesResumable(newImageRef, image);
 
@@ -88,6 +95,34 @@ export async function uploadInspirationImage(userId, image) {
     }
 }
 
+/**
+ * Deletes all inspiration images for a collection
+ * @param {string} userId - The ID of the user
+ * @param {string} collectionId - The ID of the collection
+ * @returns {Promise<void>}
+ */
+export async function deleteCollectionImages(userId, collectionId) {
+    try {
+        const folderRef = ref(storage, `inspiring/${userId}/collection/${collectionId}`);
+        const folderPath = folderRef.fullPath;
+        
+        // List all files in the collection folder
+        const { items } = await listAll(folderRef);
+        
+        // Delete each file
+        const deletePromises = items.map(item => deleteObject(item));
+        await Promise.all(deletePromises);
+    } catch (error) {
+        console.error("Error deleting collection images:", error);
+        throw error;
+    }
+}
+
+/**
+ * Deletes a single inspiration image by URL
+ * @param {string} imageUrl - The URL of the image to delete
+ * @returns {Promise<void>}
+ */
 export async function deleteInspirationImage(imageUrl) {
     try {
         if (!imageUrl) {

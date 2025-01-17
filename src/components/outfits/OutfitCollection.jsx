@@ -2,216 +2,160 @@
 
 import React, { useState } from 'react';
 import {
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
+  Paper,
   Typography,
   Box,
-  Button,
-  Stack,
-  useTheme,
-  useMediaQuery,
   IconButton,
-  Tooltip,
+  Button,
+  ImageList,
+  ImageListItem,
   Divider,
+  Alert,
+  CircularProgress,
 } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
 import GeneratedOutfitCard from './GeneratedOutfitCard';
 import GenerateOutfitForCollectionModal from './GenerateOutfitForCollectionModal';
+import { useDeleteCollection, useDeleteOutfitFromCollection } from '@/src/hooks/outfitGenerator.hooks';
 
-const DESCRIPTION_LIMIT = 100;
-
-function OutfitCollection({ collection, onEdit, onDelete }) {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const [expanded, setExpanded] = useState(false);
+export default function OutfitCollection({ collection }) {
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
+  const { deleteCollection, isDeleting, error: deleteError } = useDeleteCollection();
+  const { 
+    deleteOutfit, 
+    isDeleting: isDeletingOutfit, 
+    error: deleteOutfitError 
+  } = useDeleteOutfitFromCollection();
 
-  const {
-    name,
-    description,
-    inspirationImages = [],
-    outfits = [],
-  } = collection;
-
-  const truncatedDescription = description.length > DESCRIPTION_LIMIT
-    ? `${description.substring(0, DESCRIPTION_LIMIT)}...`
-    : description;
-
-  const handleGenerateOutfit = async (formData) => {
-    // TODO: Implement actual generation logic
-    console.log('Generating outfit:', formData);
-    // Mock generation response
+  const handleDelete = async () => {
+    try {
+      await deleteCollection(collection.id);
+    } catch (err) {
+      // Error is handled by the hook
+      console.error('Failed to delete collection:', err);
+    }
   };
 
-  const handleEdit = (event) => {
-    event.stopPropagation(); // Prevent accordion from toggling
-    onEdit?.(collection);
-  };
-
-  const handleDelete = (event) => {
-    event.stopPropagation(); // Prevent accordion from toggling
-    onDelete?.(collection);
+  const handleDeleteOutfit = async (outfitId) => {
+    try {
+      await deleteOutfit(collection.id, outfitId);
+    } catch (err) {
+      // Error is handled by the hook
+      console.error('Failed to delete outfit:', err);
+    }
   };
 
   return (
-    <Accordion 
-      expanded={expanded} 
-      onChange={() => setExpanded(!expanded)}
-      sx={{ width: '100%' }}
-    >
-      <AccordionSummary
-        expandIcon={<ExpandMoreIcon />}
-        sx={{
-          '& .MuiAccordionSummary-content': {
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 0.5,
-          },
-        }}
-      >
-        <Typography variant="h6" noWrap>{name}</Typography>
-        <Typography 
-          variant="body2" 
-          color="text.secondary"
-          sx={{
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-          }}
+    <Paper sx={{ p: 3, mb: 3 }}>
+      {/* Collection Header */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+        <Box>
+          <Typography variant="h5" component="h2" gutterBottom>
+            {collection.name}
+          </Typography>
+          <Typography variant="body1" color="text.secondary" paragraph>
+            {collection.description}
+          </Typography>
+        </Box>
+        <IconButton 
+          onClick={handleDelete}
+          disabled={isDeleting}
+          sx={{ ml: 2 }}
         >
-          {truncatedDescription}
-        </Typography>
-      </AccordionSummary>
+          <DeleteIcon />
+        </IconButton>
+      </Box>
 
-      <AccordionDetails>
-        {/* Full Description */}
-        <Typography paragraph>{description}</Typography>
+      {/* Error Messages */}
+      {(deleteError || deleteOutfitError) && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {deleteError || deleteOutfitError}
+        </Alert>
+      )}
 
-        {/* Inspiration Images Grid */}
-        <Box sx={{ mb: 3 }}>
+      {/* Inspiration Images */}
+      {collection.inspirationImages?.length > 0 && (
+        <>
           <Typography variant="subtitle1" gutterBottom>
             Inspiration Images
           </Typography>
-          <Stack 
-            direction="row" 
-            spacing={1} 
-            sx={{ 
-              flexWrap: 'wrap',
-              gap: 1,
-              '& img': {
-                width: isMobile ? '80px' : '120px',
-                height: isMobile ? '80px' : '120px',
-                objectFit: 'cover',
-                borderRadius: 1,
-              }
-            }}
-          >
-            {inspirationImages.map((image, index) => (
-              <img
-                key={index}
-                src={image}
-                alt={`Inspiration ${index + 1}`}
-              />
+          <ImageList cols={6} rowHeight={100} sx={{ mb: 2 }}>
+            {collection.inspirationImages.map((image, index) => (
+              <ImageListItem key={index}>
+                <img
+                  src={image}
+                  alt={`Inspiration ${index + 1}`}
+                  loading="lazy"
+                  style={{ height: '100px', objectFit: 'cover' }}
+                />
+              </ImageListItem>
             ))}
-          </Stack>
-        </Box>
+          </ImageList>
+          <Divider sx={{ my: 3 }} />
+        </>
+      )}
 
-        <Divider sx={{ my: 2 }} />
-
-        {/* Action Buttons */}
-        <Box 
-          sx={{ 
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            mb: 3,
-          }}
-        >
+      {/* Generated Outfits */}
+      <Box sx={{ mb: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h6">
+            Generated Outfits
+          </Typography>
           <Button
-            variant="contained"
+            variant="outlined"
+            startIcon={<AddIcon />}
             onClick={() => setIsGenerateModalOpen(true)}
-            sx={{ mt: 2 }}
           >
             Generate New Outfit
           </Button>
-          
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Tooltip title="Edit Collection">
-              <IconButton
-                onClick={handleEdit}
-                sx={{ 
-                  color: 'action.active',
-                  '&:hover': { color: 'primary.main' },
-                }}
-              >
-                <EditIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Delete Collection">
-              <IconButton
-                onClick={handleDelete}
-                sx={{ 
-                  color: 'action.active',
-                  '&:hover': { color: 'error.main' },
-                }}
-              >
-                <DeleteIcon />
-              </IconButton>
-            </Tooltip>
-          </Box>
         </Box>
 
-        {/* Outfits List */}
-        {outfits.length === 0 ? (
-          <Box
-            sx={{
+        {/* Loading State */}
+        {isDeletingOutfit && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
+            <CircularProgress />
+          </Box>
+        )}
+
+        {/* Outfits Grid */}
+        <Box sx={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+          gap: 2 
+        }}>
+          {collection.outfits?.map((outfit) => (
+            <GeneratedOutfitCard
+              key={outfit.id}
+              outfit={outfit}
+              onDelete={() => handleDeleteOutfit(outfit.id)}
+            />
+          ))}
+        </Box>
+
+        {/* Empty State */}
+        {(!collection.outfits || collection.outfits.length === 0) && (
+          <Box 
+            sx={{ 
               textAlign: 'center',
               py: 4,
-              px: 2,
-              bgcolor: 'background.paper',
-              borderRadius: 1,
+              bgcolor: 'background.default',
+              borderRadius: 1
             }}
           >
-            <Typography variant="h6" gutterBottom>
-              No outfits generated yet
+            <Typography variant="body1" color="text.secondary">
+              No outfits generated yet. Click the button above to create your first outfit!
             </Typography>
-            <Typography variant="body2" color="text.secondary" paragraph>
-              Generate your first outfit based on your inspiration images and style preferences.
-            </Typography>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setIsGenerateModalOpen(true)}
-            >
-              Generate First Outfit
-            </Button>
           </Box>
-        ) : (
-          <Stack spacing={2}>
-            {outfits.map((outfit) => (
-              <GeneratedOutfitCard
-                key={outfit.id}
-                outfit={outfit}
-              />
-            ))}
-          </Stack>
         )}
-      </AccordionDetails>
+      </Box>
 
       {/* Generate Outfit Modal */}
       <GenerateOutfitForCollectionModal
         open={isGenerateModalOpen}
         onClose={() => setIsGenerateModalOpen(false)}
-        onGenerate={handleGenerateOutfit}
-        collectionName={collection.name}
+        collectionId={collection.id}
       />
-    </Accordion>
+    </Paper>
   );
 }
-
-export default OutfitCollection;

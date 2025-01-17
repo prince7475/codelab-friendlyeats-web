@@ -1,6 +1,16 @@
 rules_version = '2';
 service cloud.firestore {
 
+  // Helper function to check if user is authenticated
+  function isAuthenticated() {
+    return request.auth != null;
+  }
+
+  // Helper function to check if user is accessing their own data
+  function isOwner(userId) {
+    return isAuthenticated() && request.auth.uid == userId;
+  }
+
   // Determine if the value of the field "key" is the same
   // before and after the request.
   function unchanged(key) {
@@ -15,9 +25,8 @@ service cloud.firestore {
     //   - Any authenticated user can create/update their own profile
     //   - Deletes are not allowed
     match /users/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null && request.auth.uid == userId;
-      allow update: if request.auth != null && request.auth.uid == userId;
+      // Allow users to read and write their own profile
+      allow read, write: if isOwner(userId);
 
       // Wardrobe Items:
       //   - Users can read/write their own wardrobe items
@@ -25,6 +34,11 @@ service cloud.firestore {
       match /wardrobe_items/{itemId} {
         allow read: if request.auth != null && request.auth.uid == userId;
         allow write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Match outfit collections
+      match /outfitCollections/{collectionId} {
+        allow read, write: if isOwner(userId);
       }
     }
 

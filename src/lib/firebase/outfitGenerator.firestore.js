@@ -7,13 +7,13 @@ import {
     addDoc,
     deleteDoc,
     orderBy,
-    Timestamp,
+    serverTimestamp,
     onSnapshot,
     updateDoc,
 } from "firebase/firestore";
 
 import { db } from "@/src/lib/firebase/clientApp";
-import { uploadInspirationImage } from "@/src/lib/firebase/storage";
+import { uploadInspirationImage, deleteCollectionImages } from "@/src/lib/firebase/storage";
 
 /**
  * Creates a new outfit collection for a user
@@ -21,25 +21,31 @@ import { uploadInspirationImage } from "@/src/lib/firebase/storage";
  * @param {Object} collectionData - The collection data
  * @param {string} collectionData.name - The name of the collection
  * @param {string} collectionData.description - The description of the collection
- * @param {File[]} collectionData.inspirationImages - Array of inspiration image files
+ * @param {Object[]} collectionData.inspirationImages - Array of objects containing inspiration image files
+ * @param {File} collectionData.inspirationImages.file - The inspiration image file
  * @returns {Promise<string>} The ID of the created collection
  */
 export async function createOutfitCollection(userId, collectionData) {
     try {
-        // Upload inspiration images first
-        const imageUploadPromises = collectionData.inspirationImages.map(image => 
-            uploadInspirationImage(userId, image)
-        );
-        const inspirationImageUrls = await Promise.all(imageUploadPromises);
-
-        // Create collection document
+        // Create collection document first to get the ID
         const collectionRef = collection(db, 'users', userId, 'outfitCollections');
         const docRef = await addDoc(collectionRef, {
             name: collectionData.name,
             description: collectionData.description,
-            inspirationImages: inspirationImageUrls,
-            outfits: [], // Initialize with empty outfits array
-            createdAt: Timestamp.now(),
+            inspirationImages: [],
+            outfits: [],
+            createdAt: serverTimestamp(),
+        });
+
+        // Upload inspiration images with collection ID
+        const imageUploadPromises = collectionData.inspirationImages.map(image => 
+            uploadInspirationImage(userId, image.file, docRef.id)
+        );
+        const inspirationImageUrls = await Promise.all(imageUploadPromises);
+
+        // Update collection with image URLs
+        await updateDoc(docRef, {
+            inspirationImages: inspirationImageUrls
         });
 
         return docRef.id;
@@ -147,8 +153,12 @@ export async function updateOutfitCollection(userId, collectionId, updateData) {
  */
 export async function deleteOutfitCollection(userId, collectionId) {
     try {
-        const collectionRef = doc(db, 'users', userId, 'outfitCollections', collectionId);
-        await deleteDoc(collectionRef);
+        // Delete all images in the collection's storage folder
+        await deleteCollectionImages(userId, collectionId);
+
+        // Delete the collection document
+        const docRef = doc(db, 'users', userId, 'outfitCollections', collectionId);
+        await deleteDoc(docRef);
     } catch (error) {
         console.error('Error deleting outfit collection:', error);
         throw error;
@@ -174,7 +184,7 @@ export async function addOutfitToCollection(userId, collectionId, outfitData) {
         const currentOutfits = docSnap.data().outfits || [];
         const newOutfit = {
             id: `outfit-${Date.now()}`,
-            createdAt: Timestamp.now(),
+            createdAt: serverTimestamp(),
             ...outfitData
         };
 

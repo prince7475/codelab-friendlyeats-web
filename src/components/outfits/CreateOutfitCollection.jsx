@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -17,18 +17,21 @@ import {
   useMediaQuery,
   ImageList,
   ImageListItem,
+  LinearProgress,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { useCreateCollection } from '@/src/hooks/outfitGenerator.hooks';
 
 const MAX_IMAGES = 6;
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-export default function CreateOutfitCollection({ open, onClose, onSubmit }) {
+export default function CreateOutfitCollection({ open, onClose }) {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  const { createCollection, isCreating, error: createError } = useCreateCollection();
   
   const [formData, setFormData] = useState({
     name: '',
@@ -36,8 +39,7 @@ export default function CreateOutfitCollection({ open, onClose, onSubmit }) {
     inspirationImages: [],
   });
   const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState({});
 
   const validateForm = () => {
     const newErrors = {};
@@ -92,6 +94,7 @@ export default function CreateOutfitCollection({ open, onClose, onSubmit }) {
       return true;
     });
 
+    // Create preview URLs for valid files
     const newImages = validFiles.map(file => ({
       file,
       preview: URL.createObjectURL(file)
@@ -102,41 +105,63 @@ export default function CreateOutfitCollection({ open, onClose, onSubmit }) {
       inspirationImages: [...prev.inspirationImages, ...newImages]
     }));
     setErrors(prev => ({ ...prev, images: null }));
+
+    // Initialize upload progress for new files
+    const newProgress = {};
+    validFiles.forEach(file => {
+      newProgress[file.name] = 0;
+    });
+    setUploadProgress(prev => ({ ...prev, ...newProgress }));
   };
 
   const handleRemoveImage = (index) => {
+    const removedImage = formData.inspirationImages[index];
+    if (removedImage.preview) {
+      URL.revokeObjectURL(removedImage.preview);
+    }
+    
     setFormData(prev => ({
       ...prev,
       inspirationImages: prev.inspirationImages.filter((_, i) => i !== index)
     }));
+
+    // Remove progress for the removed image
+    const { [removedImage.file.name]: removed, ...remainingProgress } = uploadProgress;
+    setUploadProgress(remainingProgress);
   };
 
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
-    setIsSubmitting(true);
-    setSubmitError(null);
-
     try {
-      await onSubmit(formData);
-      onClose();
-    } catch (error) {
-      setSubmitError(error.message);
-    } finally {
-      setIsSubmitting(false);
+      await createCollection(formData);
+      handleClose();
+    } catch (err) {
+      setErrors(prev => ({
+        ...prev,
+        submit: err.message
+      }));
     }
   };
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
+    // Cleanup preview URLs
+    formData.inspirationImages.forEach(image => {
+      if (image.preview) {
+        URL.revokeObjectURL(image.preview);
+      }
+    });
+
+    // Reset form state
     setFormData({
       name: '',
       description: '',
       inspirationImages: [],
     });
     setErrors({});
-    setSubmitError(null);
+    setUploadProgress({});
     onClose();
-  };
+  }, [formData, onClose]);
 
   return (
     <Dialog
@@ -168,9 +193,9 @@ export default function CreateOutfitCollection({ open, onClose, onSubmit }) {
       </DialogTitle>
 
       <DialogContent dividers>
-        {submitError && (
+        {(errors.submit || createError) && (
           <Alert severity="error" sx={{ mb: 2 }}>
-            {submitError}
+            {errors.submit || createError}
           </Alert>
         )}
 
@@ -187,6 +212,7 @@ export default function CreateOutfitCollection({ open, onClose, onSubmit }) {
             onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
             error={!!errors.name}
             helperText={errors.name}
+            disabled={isCreating}
           />
 
           <TextField
@@ -202,6 +228,7 @@ export default function CreateOutfitCollection({ open, onClose, onSubmit }) {
             onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
             error={!!errors.description}
             helperText={errors.description}
+            disabled={isCreating}
           />
 
           <Box sx={{ mt: 3 }}>
@@ -212,14 +239,14 @@ export default function CreateOutfitCollection({ open, onClose, onSubmit }) {
               multiple
               type="file"
               onChange={handleImageUpload}
-              disabled={formData.inspirationImages.length >= MAX_IMAGES}
+              disabled={isCreating || formData.inspirationImages.length >= MAX_IMAGES}
             />
             <label htmlFor="inspiration-image-upload">
               <Button
                 component="span"
                 variant="outlined"
                 startIcon={<CloudUploadIcon />}
-                disabled={formData.inspirationImages.length >= MAX_IMAGES}
+                disabled={isCreating || formData.inspirationImages.length >= MAX_IMAGES}
               >
                 Upload Inspiration Images
               </Button>
@@ -259,9 +286,22 @@ export default function CreateOutfitCollection({ open, onClose, onSubmit }) {
                       },
                     }}
                     onClick={() => handleRemoveImage(index)}
+                    disabled={isCreating}
                   >
                     <DeleteIcon sx={{ color: 'white' }} />
                   </IconButton>
+                  {uploadProgress[image.file.name] !== undefined && (
+                    <LinearProgress
+                      variant="determinate"
+                      value={uploadProgress[image.file.name]}
+                      sx={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                      }}
+                    />
+                  )}
                 </ImageListItem>
               ))}
             </ImageList>
@@ -270,14 +310,16 @@ export default function CreateOutfitCollection({ open, onClose, onSubmit }) {
       </DialogContent>
 
       <DialogActions sx={{ p: 2 }}>
-        <Button onClick={handleClose}>Cancel</Button>
+        <Button onClick={handleClose} disabled={isCreating}>
+          Cancel
+        </Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
-          disabled={isSubmitting}
-          startIcon={isSubmitting ? <CircularProgress size={20} /> : null}
+          disabled={isCreating}
+          startIcon={isCreating ? <CircularProgress size={20} /> : null}
         >
-          Create Collection
+          {isCreating ? 'Creating Collection...' : 'Create Collection'}
         </Button>
       </DialogActions>
     </Dialog>

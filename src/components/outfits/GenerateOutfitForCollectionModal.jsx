@@ -7,46 +7,41 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  Box,
-  Typography,
   TextField,
-  CircularProgress,
-  Alert,
-  IconButton,
-  useTheme,
-  useMediaQuery,
   FormControlLabel,
   Switch,
+  Box,
+  IconButton,
+  Alert,
+  CircularProgress,
+  Typography,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import { useGenerateOutfitForCollection } from '@/src/hooks/outfitGenerator.hooks';
 
-export default function GenerateOutfitForCollectionModal({ 
-  open, 
-  onClose, 
-  onGenerate,
-  collectionName 
-}) {
-  const theme = useTheme();
-  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+export default function GenerateOutfitForCollectionModal({ open, onClose, collectionId }) {
+  const { generateOutfit, isGenerating, error: generateError } = useGenerateOutfitForCollection();
   
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    excludeExistingItems: true,
+    excludeExistingItems: false,
   });
   const [errors, setErrors] = useState({});
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState(null);
 
   const validateForm = () => {
     const newErrors = {};
     
     if (!formData.title.trim()) {
       newErrors.title = 'Title is required';
+    } else if (formData.title.length > 100) {
+      newErrors.title = 'Title must be less than 100 characters';
     }
 
     if (!formData.description.trim()) {
       newErrors.description = 'Description is required';
+    } else if (formData.description.length > 500) {
+      newErrors.description = 'Description must be less than 500 characters';
     }
 
     setErrors(newErrors);
@@ -56,16 +51,14 @@ export default function GenerateOutfitForCollectionModal({
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
-    setIsGenerating(true);
-    setError(null);
-
     try {
-      await onGenerate(formData);
+      await generateOutfit(collectionId, formData);
       handleClose();
     } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsGenerating(false);
+      setErrors(prev => ({
+        ...prev,
+        submit: err.message
+      }));
     }
   };
 
@@ -73,10 +66,9 @@ export default function GenerateOutfitForCollectionModal({
     setFormData({
       title: '',
       description: '',
-      excludeExistingItems: true,
+      excludeExistingItems: false,
     });
     setErrors({});
-    setError(null);
     onClose();
   };
 
@@ -84,25 +76,19 @@ export default function GenerateOutfitForCollectionModal({
     <Dialog
       open={open}
       onClose={handleClose}
-      fullScreen={fullScreen}
       maxWidth="sm"
       fullWidth
     >
-      <DialogTitle
-        sx={{
-          m: 0,
-          p: 2,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        {`Generate Outfit for ${collectionName}`}
+      <DialogTitle sx={{ m: 0, p: 2 }}>
+        Generate New Outfit
         <IconButton
           aria-label="close"
           onClick={handleClose}
           sx={{
-            color: theme.palette.grey[500],
+            position: 'absolute',
+            right: 8,
+            top: 8,
+            color: (theme) => theme.palette.grey[500],
           }}
         >
           <CloseIcon />
@@ -110,13 +96,18 @@ export default function GenerateOutfitForCollectionModal({
       </DialogTitle>
 
       <DialogContent dividers>
-        {error && (
+        {/* Error Messages */}
+        {(errors.submit || generateError) && (
           <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
+            {errors.submit || generateError}
           </Alert>
         )}
 
-        <Box component="form" noValidate sx={{ mt: 1 }}>
+        <Typography variant="body2" color="text.secondary" paragraph>
+          Provide details about the outfit you want to generate. Our AI will create an outfit based on your wardrobe items and collection inspiration.
+        </Typography>
+
+        <Box component="form" noValidate>
           <TextField
             autoFocus
             margin="normal"
@@ -129,6 +120,7 @@ export default function GenerateOutfitForCollectionModal({
             onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
             error={!!errors.title}
             helperText={errors.title}
+            disabled={isGenerating}
           />
 
           <TextField
@@ -138,13 +130,13 @@ export default function GenerateOutfitForCollectionModal({
             multiline
             rows={4}
             id="description"
-            label="Description"
+            label="Outfit Description"
             name="description"
-            placeholder="Describe the type of outfit you want to generate. For example: 'Create a casual outfit suitable for a weekend brunch with friends.'"
             value={formData.description}
             onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
             error={!!errors.description}
             helperText={errors.description}
+            disabled={isGenerating}
           />
 
           <FormControlLabel
@@ -155,7 +147,7 @@ export default function GenerateOutfitForCollectionModal({
                   ...prev, 
                   excludeExistingItems: e.target.checked 
                 }))}
-                name="excludeExistingItems"
+                disabled={isGenerating}
               />
             }
             label="Exclude items from existing outfits"
@@ -165,7 +157,9 @@ export default function GenerateOutfitForCollectionModal({
       </DialogContent>
 
       <DialogActions sx={{ p: 2 }}>
-        <Button onClick={handleClose}>Cancel</Button>
+        <Button onClick={handleClose} disabled={isGenerating}>
+          Cancel
+        </Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
