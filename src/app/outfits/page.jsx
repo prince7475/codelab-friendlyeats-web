@@ -9,30 +9,38 @@ import {
   Paper,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import OutfitCollection from '@/src/components/outfits/OutfitCollection';
 
 // Mock data - will be replaced with real data later
 const mockCollection = {
   id: 'casual-weekend',
   name: 'Casual Weekend',
-  description: 'Relaxed and comfortable outfits perfect for weekend activities',
-  inspirationImage: '/mock/inspiration.jpg',
+  description: 'Relaxed and comfortable outfits perfect for weekend activities. Create a versatile collection that works for brunch, shopping, or casual meetups with friends.',
+  inspirationImages: [
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTRRwUyUXxI7T8YTrG2SdChgaT3UiQfV7TKFw&s',
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTRRwUyUXxI7T8YTrG2SdChgaT3UiQfV7TKFw&s',
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTRRwUyUXxI7T8YTrG2SdChgaT3UiQfV7TKFw&s',
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTRRwUyUXxI7T8YTrG2SdChgaT3UiQfV7TKFw&s',
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTRRwUyUXxI7T8YTrG2SdChgaT3UiQfV7TKFw&s',
+  ],
   outfits: [
-    {
-      id: 'outfit-1',
-      items: [
-        { id: 'item-1', name: 'Blue Jeans', image: '/mock/jeans.jpg' },
-        { id: 'item-2', name: 'White T-Shirt', image: '/mock/tshirt.jpg' },
-        { id: 'item-3', name: 'Sneakers', image: '/mock/sneakers.jpg' }
-      ],
-      description: 'Classic casual look perfect for running errands or meeting friends',
-      confidenceScore: 0.95
-    }
+
   ]
 };
 
 function OutfitCollectionPage() {
   const [collections, setCollections] = useState([mockCollection]);
   const hasCollections = collections.length > 0;
+
+  const handleEditCollection = (collection) => {
+    // TODO: Open edit collection modal
+    console.log('Edit collection:', collection);
+  };
+
+  const handleDeleteCollection = (collection) => {
+    // TODO: Show confirmation dialog before deleting
+    console.log('Delete collection:', collection);
+  };
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -87,13 +95,14 @@ function OutfitCollectionPage() {
       {/* Collections List */}
       {hasCollections && (
         <Box sx={{ mt: 4 }}>
-          {/* TODO: Replace with OutfitCollection component */}
-          <Paper sx={{ p: 2, mb: 2 }}>
-            <Typography variant="h6">{mockCollection.name}</Typography>
-            <Typography variant="body2" color="text.secondary">
-              {mockCollection.description}
-            </Typography>
-          </Paper>
+          {collections.map(collection => (
+            <OutfitCollection 
+              key={collection.id} 
+              collection={collection} 
+              onEdit={handleEditCollection}
+              onDelete={handleDeleteCollection}
+            />
+          ))}
         </Box>
       )}
     </Container>
