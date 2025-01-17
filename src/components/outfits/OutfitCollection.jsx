@@ -20,6 +20,7 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import GeneratedOutfitCard from './GeneratedOutfitCard';
+import GenerateOutfitForCollectionModal from './GenerateOutfitForCollectionModal';
 
 const DESCRIPTION_LIMIT = 100;
 
@@ -27,6 +28,7 @@ function OutfitCollection({ collection, onEdit, onDelete }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [expanded, setExpanded] = useState(false);
+  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
 
   const {
     name,
@@ -39,9 +41,29 @@ function OutfitCollection({ collection, onEdit, onDelete }) {
     ? `${description.substring(0, DESCRIPTION_LIMIT)}...`
     : description;
 
-  const handleGenerateOutfit = () => {
-    // TODO: Implement generate outfit functionality
-    console.log('Generate outfit clicked');
+  const handleGenerateOutfit = async (formData) => {
+    // TODO: Implement actual generation logic
+    console.log('Generating outfit:', formData);
+    // Mock generation response
+    const mockOutfit = {
+      id: `outfit-${Date.now()}`,
+      title: formData.title,
+      items: [
+        { 
+          id: 'item-1', 
+          name: 'Classic Blue Jeans', 
+          image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRzJSDPRQf4pcpjCjXVr8MsPTPubRkKimBu5g&s'
+        },
+        { 
+          id: 'item-2', 
+          name: 'White Cotton T-Shirt', 
+          image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSafXNSEphv7KGB5qAH4UY_vzZgOGOp2ZwAkA&s'
+        },
+      ],
+      description: formData.description,
+      confidenceScore: Math.random()
+    };
+    // TODO: Update collection with new outfit
   };
 
   const handleEdit = (event) => {
@@ -130,9 +152,9 @@ function OutfitCollection({ collection, onEdit, onDelete }) {
           }}
         >
           <Button
-            variant="outlined"
-            startIcon={<AddIcon />}
-            onClick={handleGenerateOutfit}
+            variant="contained"
+            onClick={() => setIsGenerateModalOpen(true)}
+            sx={{ mt: 2 }}
           >
             Generate New Outfit
           </Button>
@@ -183,7 +205,7 @@ function OutfitCollection({ collection, onEdit, onDelete }) {
             <Button
               variant="contained"
               startIcon={<AddIcon />}
-              onClick={handleGenerateOutfit}
+              onClick={() => setIsGenerateModalOpen(true)}
             >
               Generate First Outfit
             </Button>
@@ -199,6 +221,14 @@ function OutfitCollection({ collection, onEdit, onDelete }) {
           </Stack>
         )}
       </AccordionDetails>
+
+      {/* Generate Outfit Modal */}
+      <GenerateOutfitForCollectionModal
+        open={isGenerateModalOpen}
+        onClose={() => setIsGenerateModalOpen(false)}
+        onGenerate={handleGenerateOutfit}
+        collectionName={collection.name}
+      />
     </Accordion>
   );
 }
