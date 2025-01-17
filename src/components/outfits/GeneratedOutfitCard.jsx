@@ -23,7 +23,6 @@ function getConfidenceColor(score) {
 function GeneratedOutfitCard({ outfit }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  
   const {
     items = [],
     description,

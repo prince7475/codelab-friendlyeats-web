@@ -17,7 +17,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 // Export the function for use in hooks
 export async function generateItemMetadata(file) {
     try {
-        const genAI = new GoogleGenerativeAI(process.env.NEXT_PRIVATE_GEMINI_API_KEY);
+        const genAI = new GoogleGenerativeAI("AIzaSyBizf6hwPtSmiVUrtEqcg6apnDewYVDVXw");
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         // Convert file to base64

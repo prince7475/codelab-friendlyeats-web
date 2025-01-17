@@ -16,7 +16,11 @@ import {
 
 import { db } from "@/src/lib/firebase/clientApp";
 import { uploadInspirationImage, deleteCollectionImages } from "@/src/lib/firebase/storage";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
+import { 
+    generateItemMetadata,
+} from '@/src/lib/firebase/wardrobe.firestore';
 /**
  * Creates a new outfit collection for a user
  * @param {string} userId - The ID of the user
@@ -29,30 +33,51 @@ import { uploadInspirationImage, deleteCollectionImages } from "@/src/lib/fireba
  */
 export async function createOutfitCollection(userId, collectionData) {
     try {
+        // First, analyze all inspiration images
+        const imageAnalysisPromises = collectionData.inspirationImages.map(async (image) => {
+            const metadata = await generateItemMetadata(image.file);
+            return metadata;
+        });
+
+        // Wait for all image analyses to complete
+        // If any analysis fails, the entire Promise.all will fail
+        const imageMetadataList = await Promise.all(imageAnalysisPromises);
+
+        // Generate collection metadata using all image metadata
+        const collectionMetadata = await generateCollectionMetadata(imageMetadataList);
+
         // Create collection document first to get the ID
         const collectionRef = collection(db, 'users', userId, 'outfitCollections');
         const docRef = await addDoc(collectionRef, {
             name: collectionData.name,
             description: collectionData.description,
-            inspirationImages: [],
+            inspirationImages: [], // Will be updated after image upload
             outfits: [],
+            metadata: collectionMetadata,
             createdAt: serverTimestamp(),
         });
 
-        // Upload inspiration images with collection ID
-        const imageUploadPromises = collectionData.inspirationImages.map(image => 
-            uploadInspirationImage(userId, image.file, docRef.id)
-        );
-        const inspirationImageUrls = await Promise.all(imageUploadPromises);
+        // Upload inspiration images with collection ID and create enriched image objects
+        const imageUploadPromises = collectionData.inspirationImages.map(async (image, index) => {
+            const url = await uploadInspirationImage(userId, image.file, docRef.id);
+            return {
+                url,
+                metadata: imageMetadataList[index]
+            };
+        });
 
-        // Update collection with image URLs
+        // Wait for all image uploads to complete
+        const enrichedInspirationImages = await Promise.all(imageUploadPromises);
+
+        // Update collection with enriched image data
         await updateDoc(docRef, {
-            inspirationImages: inspirationImageUrls
+            inspirationImages: enrichedInspirationImages
         });
 
         return docRef.id;
     } catch (error) {
         console.error('Error creating outfit collection:', error);
+        // If any step fails, we'll throw the error and let the caller handle it
         throw error;
     }
 }
@@ -195,5 +220,126 @@ export async function addOutfitToCollection(userId, collectionId, outfitData) {
     } catch (error) {
         console.error('Error adding outfit to collection:', error);
         throw error;
+    }
+}
+
+/**
+ * Generates collection metadata using LLM based on inspiration images
+ * @param {Object[]} imageMetadataList - Array of image metadata objects
+ * @returns {Promise<Object>} Collection metadata including tags and description
+ */
+export async function generateCollectionMetadata(imageMetadataList) {
+    try {
+        const genAI = new GoogleGenerativeAI("AIzaSyBizf6hwPtSmiVUrtEqcg6apnDewYVDVXw");
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        // Format the metadata into a descriptive string for each item
+        const formattedDescriptions = imageMetadataList.map((metadata, index) => {
+            return `Item ${index + 1}:
+            Name: ${metadata.name}
+            Description: ${metadata.description}
+            Colors: ${metadata.colors.join(', ')}
+            Styles: ${metadata.styles.join(', ')}
+            Occasions: ${metadata.occasions.join(', ')}
+            Category: ${metadata.category}`;
+        });
+
+        // Prepare the prompt
+        const prompt = `Analyze these outfit inspiration items and provide:
+        1. A set of style tags that represent the overall style theme
+        2. A detailed description of the style being aimed for
+        3. A confidence score for this analysis
+
+        Inspiration Items to analyze:
+        ${formattedDescriptions.join('\n\n')}
+
+        Return ONLY a JSON object with these exact keys (no markdown formatting):
+        {
+            "tags": string[],
+            "description": string,
+            "confidenceScore": number
+        }`;
+
+        // Generate content
+        const result = await model.generateContent([prompt]);
+        const response = await result.response;
+        const analysisText = response.text();
+        
+        // Extract JSON from markdown if present
+        const jsonMatch = analysisText.match(/```json\n([\s\S]*?)\n```/) || [null, analysisText];
+        const jsonString = jsonMatch[1].trim();
+        
+        // Parse the JSON response
+        return JSON.parse(jsonString);
+    } catch (error) {
+        console.error("Error generating collection metadata:", error);
+        throw new Error("Failed to analyze collection style. Please try again.");
+    }
+}
+
+/**
+ * Generates outfit suggestion with confidence score
+ * @param {Object} params - Generation parameters
+ * @param {string} params.collectionDescription - Collection description
+ * @param {string[]} params.collectionTags - Collection tags
+ * @param {Object[]} params.wardrobeItems - Available wardrobe items
+ * @returns {Promise<Object>} Generated outfit with confidence score
+ */
+export async function generateOutfitSuggestion({ collectionDescription, collectionTags, wardrobeItems }) {
+    try {
+        const genAI = new GoogleGenerativeAI(process.env.NEXT_PRIVATE_GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        // Prepare the prompt
+        const prompt = `Generate an outfit based on the following:
+
+        Style Description: ${collectionDescription}
+        Style Tags: ${collectionTags.join(', ')}
+
+        Available Wardrobe Items:
+        ${wardrobeItems.map(item => `- ${item.description} (ID: ${item.id})`).join('\n')}
+
+        Create an outfit that matches the style description using only the available wardrobe items.
+        For each selected item, explain why it fits the desired style.
+
+        Return ONLY a JSON object with these exact keys (no markdown formatting):
+        {
+            "items": [
+                {
+                    "id": string,
+                    "reason": string
+                }
+            ],
+            "confidenceScore": number,
+            "explanation": string
+        }
+
+        The confidence score should be between 0 and 1, representing how well the generated outfit matches the desired style.
+        The explanation should describe why this outfit works well together and how it achieves the desired style.`;
+
+        // Generate content
+        const result = await model.generateContent([prompt]);
+        const response = await result.response;
+        const analysisText = response.text();
+        
+        // Extract JSON from markdown if present
+        const jsonMatch = analysisText.match(/```json\n([\s\S]*?)\n```/) || [null, analysisText];
+        const jsonString = jsonMatch[1].trim();
+        
+        // Parse the JSON response
+        const suggestion = JSON.parse(jsonString);
+
+        // Validate that all selected items exist in wardrobe
+        const wardrobeIds = new Set(wardrobeItems.map(item => item.id));
+        const allItemsExist = suggestion.items.every(item => wardrobeIds.has(item.id));
+        
+        if (!allItemsExist) {
+            throw new Error("Generated outfit contains invalid wardrobe items");
+        }
+
+        return suggestion;
+    } catch (error) {
+        console.error("Error generating outfit suggestion:", error);
+        throw new Error("Failed to generate outfit suggestion. Please try again.");
     }
 }

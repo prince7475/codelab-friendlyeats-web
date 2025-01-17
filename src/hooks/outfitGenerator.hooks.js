@@ -83,36 +83,6 @@ export function useCreateCollection() {
 }
 
 /**
- * Hook to manage outfit collection updates
- */
-export function useUpdateCollection() {
-    const [isUpdating, setIsUpdating] = useState(false);
-    const [error, setError] = useState(null);
-    const user = useUser();
-
-    const updateCollection = useCallback(async (collectionId, updateData) => {
-        if (!user?.uid) {
-            throw new Error('User must be logged in to update a collection');
-        }
-
-        setIsUpdating(true);
-        setError(null);
-
-        try {
-            await updateOutfitCollection(user.uid, collectionId, updateData);
-        } catch (err) {
-            console.error('Error updating collection:', err);
-            setError(err.message);
-            throw err;
-        } finally {
-            setIsUpdating(false);
-        }
-    }, [user]);
-
-    return { updateCollection, isUpdating, error };
-}
-
-/**
  * Hook to manage outfit collection deletion
  */
 export function useDeleteCollection() {

@@ -82,13 +82,49 @@ export default function OutfitCollection({ collection }) {
           </Typography>
           <ImageList cols={6} rowHeight={100} sx={{ mb: 2 }}>
             {collection.inspirationImages.map((image, index) => (
-              <ImageListItem key={index}>
+              <ImageListItem 
+                key={index}
+                sx={{ 
+                  cursor: 'pointer',
+                  '&:hover': {
+                    '& .image-info': {
+                      display: 'flex'
+                    }
+                  }
+                }}
+              >
                 <img
-                  src={image}
-                  alt={`Inspiration ${index + 1}`}
+                  src={image.url}
+                  alt={image.metadata.name || `Inspiration ${index + 1}`}
                   loading="lazy"
                   style={{ height: '100px', objectFit: 'cover' }}
                 />
+                <Box
+                  className="image-info"
+                  sx={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    bgcolor: 'rgba(0, 0, 0, 0.7)',
+                    color: 'white',
+                    display: 'none',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    p: 1,
+                    textAlign: 'center',
+                    fontSize: '0.75rem'
+                  }}
+                >
+                  <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
+                    {image.metadata.name}
+                  </Typography>
+                  <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>
+                    {image.metadata.styles.slice(0, 3).join(', ')}
+                  </Typography>
+                </Box>
               </ImageListItem>
             ))}
           </ImageList>
