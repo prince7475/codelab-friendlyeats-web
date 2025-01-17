@@ -19,6 +19,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import GeneratedOutfitCard from './GeneratedOutfitCard';
 
 const DESCRIPTION_LIMIT = 100;
 
@@ -190,19 +191,10 @@ function OutfitCollection({ collection, onEdit, onDelete }) {
         ) : (
           <Stack spacing={2}>
             {outfits.map((outfit) => (
-              <Box
+              <GeneratedOutfitCard
                 key={outfit.id}
-                sx={{
-                  p: 2,
-                  bgcolor: 'background.paper',
-                  borderRadius: 1,
-                }}
-              >
-                {/* TODO: Replace with GeneratedOutfitCard component */}
-                <Typography variant="subtitle1">
-                  {outfit.description}
-                </Typography>
-              </Box>
+                outfit={outfit}
+              />
             ))}
           </Stack>
         )}
