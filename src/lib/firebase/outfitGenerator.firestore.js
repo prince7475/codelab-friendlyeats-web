@@ -201,21 +201,58 @@ export async function deleteOutfitCollection(userId, collectionId) {
  */
 export async function addOutfitToCollection(userId, collectionId, outfitData) {
     try {
-        const docRef = doc(db, 'users', userId, 'outfitCollections', collectionId);
-        const docSnap = await getDoc(docRef);
+        // Get the collection to access its metadata and style information
+        const collectionRef = doc(db, 'users', userId, 'outfitCollections', collectionId);
+        const collectionDoc = await getDoc(collectionRef);
         
-        if (!docSnap.exists()) {
+        if (!collectionDoc.exists()) {
             throw new Error('Collection not found');
         }
 
-        const newOutfit = {
-            id: `outfit-${Date.now()}`,
-            createdAt: Timestamp.fromDate(new Date()),
-            ...outfitData
+        const collectionData = collectionDoc.data();
+
+        // Get all wardrobe items
+        const wardrobeRef = collection(db, 'users', userId, 'wardrobe_items');
+        const wardrobeSnapshot = await getDocs(wardrobeRef);
+        const wardrobeItems = wardrobeSnapshot.docs.map(doc => ({
+            id: doc.id,
+            metadata: doc.data()
+        }));
+
+        // Generate outfit suggestion
+        const suggestion = await generateOutfitSuggestion({
+            collectionDescription: collectionData.metadata.description,
+            collectionTags: collectionData.metadata.tags,
+            wardrobeItems,
+            occasion: outfitData.description // Use the user's input description as the occasion
+        });
+
+        // Create a map of wardrobe items for easy lookup
+        const wardrobeItemsMap = wardrobeItems.reduce((acc, item) => {
+            acc[item.id] = item.metadata;
+            return acc;
+        }, {});
+
+        // Enrich the items with image URLs and names
+        const enrichedItems = suggestion.items.map(item => ({
+            ...item,
+            image: wardrobeItemsMap[item.id].imageUrl, // Add the image URL
+            name: wardrobeItemsMap[item.id].name // Add the item name
+        }));
+
+        // Create the outfit document with the suggestion and additional metadata
+        const outfitDoc = {
+            title: outfitData.title,
+            description: outfitData.description,
+            items: enrichedItems,
+            confidenceScore: suggestion.confidenceScore,
+            explanation: suggestion.explanation,
+            createdAt: Timestamp.now()
         };
 
-        await updateDoc(docRef, {
-            outfits: arrayUnion(newOutfit)
+        // Update the collection with the new outfit
+        await updateDoc(collectionRef, {
+            outfits: arrayUnion(outfitDoc)
         });
     } catch (error) {
         console.error('Error adding outfit to collection:', error);
@@ -283,39 +320,49 @@ export async function generateCollectionMetadata(imageMetadataList) {
  * @param {string} params.collectionDescription - Collection description
  * @param {string[]} params.collectionTags - Collection tags
  * @param {Object[]} params.wardrobeItems - Available wardrobe items
+ * @param {string} params.occasion - Description of where the user is going
  * @returns {Promise<Object>} Generated outfit with confidence score
  */
-export async function generateOutfitSuggestion({ collectionDescription, collectionTags, wardrobeItems }) {
+export async function generateOutfitSuggestion({ collectionDescription, collectionTags, wardrobeItems, occasion }) {
     try {
-        const genAI = new GoogleGenerativeAI(process.env.NEXT_PRIVATE_GEMINI_API_KEY);
+        const genAI = new GoogleGenerativeAI("AIzaSyBizf6hwPtSmiVUrtEqcg6apnDewYVDVXw");
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         // Prepare the prompt
-        const prompt = `Generate an outfit based on the following:
+        const prompt = `Create a realistic outfit for the following occasion and style:
 
+        Occasion: ${occasion}
         Style Description: ${collectionDescription}
         Style Tags: ${collectionTags.join(', ')}
 
         Available Wardrobe Items:
-        ${wardrobeItems.map(item => `- ${item.description} (ID: ${item.id})`).join('\n')}
+        ${wardrobeItems.map(item => `
+        - ID: ${item.id}
+          Name: ${item.metadata.name}
+          Description: ${item.metadata.description}
+          Category: ${item.metadata.category}
+          Colors: ${item.metadata.colors.join(', ')}
+          Styles: ${item.metadata.styles.join(', ')}
+          Occasions: ${item.metadata.occasions.join(', ')}`).join('\n')}
 
-        Create an outfit that matches the style description using only the available wardrobe items.
-        For each selected item, explain why it fits the desired style.
+        Requirements:
+        1. Create ONE realistic outfit that the user can wear
+        2. Must include exactly one pair of shoes and one pair of pants/bottoms
+        3. Can include multiple top layers if appropriate (e.g., shirt + sweater + coat)
+        4. Consider color coordination, style matching, and occasion appropriateness
+        5. Explain why each item was chosen and how they complement each other
 
         Return ONLY a JSON object with these exact keys (no markdown formatting):
         {
             "items": [
                 {
                     "id": string,
-                    "reason": string
+                    "reason": string (explain why this item was chosen and how it complements the outfit)
                 }
             ],
-            "confidenceScore": number,
-            "explanation": string
-        }
-
-        The confidence score should be between 0 and 1, representing how well the generated outfit matches the desired style.
-        The explanation should describe why this outfit works well together and how it achieves the desired style.`;
+            "confidenceScore": number (between 0 and 1),
+            "explanation": string (overall explanation of the outfit, including how it matches the style and occasion)
+        }`;
 
         // Generate content
         const result = await model.generateContent([prompt]);
