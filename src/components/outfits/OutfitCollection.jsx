@@ -45,25 +45,6 @@ function OutfitCollection({ collection, onEdit, onDelete }) {
     // TODO: Implement actual generation logic
     console.log('Generating outfit:', formData);
     // Mock generation response
-    const mockOutfit = {
-      id: `outfit-${Date.now()}`,
-      title: formData.title,
-      items: [
-        { 
-          id: 'item-1', 
-          name: 'Classic Blue Jeans', 
-          image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRzJSDPRQf4pcpjCjXVr8MsPTPubRkKimBu5g&s'
-        },
-        { 
-          id: 'item-2', 
-          name: 'White Cotton T-Shirt', 
-          image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSafXNSEphv7KGB5qAH4UY_vzZgOGOp2ZwAkA&s'
-        },
-      ],
-      description: formData.description,
-      confidenceScore: Math.random()
-    };
-    // TODO: Update collection with new outfit
   };
 
   const handleEdit = (event) => {
