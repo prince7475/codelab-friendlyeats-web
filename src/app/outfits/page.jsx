@@ -6,150 +6,98 @@ import {
   Typography,
   Button,
   Box,
+  Paper,
 } from '@mui/material';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import GenerateOutfitModal from '@/src/components/outfits/GenerateOutfitModal';
-import OutfitList from '@/src/components/outfits/OutfitList';
+import AddIcon from '@mui/icons-material/Add';
 
-export default function Outfits() {
-  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
-  
-  // Mock data with multiple outfits
-  const mockOutfits = [
+// Mock data - will be replaced with real data later
+const mockCollection = {
+  id: 'casual-weekend',
+  name: 'Casual Weekend',
+  description: 'Relaxed and comfortable outfits perfect for weekend activities',
+  inspirationImage: '/mock/inspiration.jpg',
+  outfits: [
     {
-      id: '1',
-      description: 'Perfect for a casual day out',
-      createdAt: '2025-01-16T17:40:59-05:00',
+      id: 'outfit-1',
       items: [
-        {
-          id: '1',
-          name: 'Blue Oxford Shirt',
-          imageUrl: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf',
-          category: 'Tops'
-        },
-        {
-          id: '2',
-          name: 'Dark Jeans',
-          imageUrl: 'https://images.unsplash.com/photo-1542272604-787c3835535d',
-          category: 'Bottoms'
-        },
-        {
-          id: '3',
-          name: 'White Sneakers',
-          imageUrl: 'https://images.unsplash.com/photo-1549298916-b41d501d3772',
-          category: 'Shoes'
-        }
-      ]
-    },
-    {
-      id: '2',
-      description: 'Business meeting ready',
-      createdAt: '2025-01-16T16:30:00-05:00',
-      items: [
-        {
-          id: '4',
-          name: 'Navy Blazer',
-          imageUrl: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35',
-          category: 'Tops'
-        },
-        {
-          id: '5',
-          name: 'White Dress Shirt',
-          imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab',
-          category: 'Tops'
-        },
-        {
-          id: '6',
-          name: 'Gray Dress Pants',
-          imageUrl: 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a',
-          category: 'Bottoms'
-        }
-      ]
-    },
-    {
-      id: '3',
-      description: 'Weekend brunch vibes',
-      createdAt: '2025-01-16T15:20:00-05:00',
-      items: [
-        {
-          id: '7',
-          name: 'Floral Dress',
-          imageUrl: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8',
-          category: 'Dresses'
-        },
-        {
-          id: '8',
-          name: 'Denim Jacket',
-          imageUrl: 'https://images.unsplash.com/photo-1543076447-215ad9ba6923',
-          category: 'Tops'
-        },
-        {
-          id: '9',
-          name: 'Ankle Boots',
-          imageUrl: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2',
-          category: 'Shoes'
-        }
-      ]
-    },
-    {
-      id: '4',
-      description: 'Date night ready',
-      createdAt: '2025-01-16T14:15:00-05:00',
-      items: [
-        {
-          id: '10',
-          name: 'Black Turtleneck',
-          imageUrl: 'https://images.unsplash.com/photo-1608063615781-e2ef8c73d114',
-          category: 'Tops'
-        },
-        {
-          id: '11',
-          name: 'Leather Jacket',
-          imageUrl: 'https://images.unsplash.com/photo-1551028719-00167b16eac5',
-          category: 'Tops'
-        },
-        {
-          id: '12',
-          name: 'Black Jeans',
-          imageUrl: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246',
-          category: 'Bottoms'
-        }
-      ]
+        { id: 'item-1', name: 'Blue Jeans', image: '/mock/jeans.jpg' },
+        { id: 'item-2', name: 'White T-Shirt', image: '/mock/tshirt.jpg' },
+        { id: 'item-3', name: 'Sneakers', image: '/mock/sneakers.jpg' }
+      ],
+      description: 'Classic casual look perfect for running errands or meeting friends',
+      confidenceScore: 0.95
     }
-  ];
+  ]
+};
+
+function OutfitCollectionPage() {
+  const [collections, setCollections] = useState([mockCollection]);
+  const hasCollections = collections.length > 0;
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       {/* Header Section */}
-      <Box mb={4}>
+      <Box sx={{ mb: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom>
-          Your Outfit Generator
+          Outfit Collections
         </Typography>
-        <Typography variant="subtitle1" color="text.secondary">
-          Get personalized outfit suggestions based on your wardrobe. Perfect for any occasion!
+        <Typography variant="body1" color="text.secondary" paragraph>
+          Create and manage your outfit collections. Each collection can be inspired by a specific style or occasion.
         </Typography>
       </Box>
 
-      {/* Generate Button - Centered */}
-      <Box display="flex" justifyContent="center" mb={4}>
-        <Button
-          variant="contained"
-          size="large"
-          startIcon={<AutoAwesomeIcon />}
-          onClick={() => setIsGenerateModalOpen(true)}
+      {/* Create Collection Button */}
+      {!hasCollections ? (
+        <Paper 
+          sx={{ 
+            p: 4, 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center',
+            textAlign: 'center',
+            gap: 2
+          }}
         >
-          Generate A Drip
-        </Button>
-      </Box>
+          <Typography variant="h6">
+            Create Your First Collection
+          </Typography>
+          <Typography variant="body1" color="text.secondary" paragraph>
+            Start by creating a collection of outfits inspired by your favorite styles or occasions.
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => {/* TODO: Open create collection modal */}}
+          >
+            Create Collection
+          </Button>
+        </Paper>
+      ) : (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => {/* TODO: Open create collection modal */}}
+          >
+            Create Collection
+          </Button>
+        </Box>
+      )}
 
-      {/* Outfits List Section */}
-      <OutfitList outfits={mockOutfits} />
-
-      {/* Generate Outfit Modal */}
-      <GenerateOutfitModal 
-        open={isGenerateModalOpen}
-        onClose={() => setIsGenerateModalOpen(false)}
-      />
+      {/* Collections List */}
+      {hasCollections && (
+        <Box sx={{ mt: 4 }}>
+          {/* TODO: Replace with OutfitCollection component */}
+          <Paper sx={{ p: 2, mb: 2 }}>
+            <Typography variant="h6">{mockCollection.name}</Typography>
+            <Typography variant="body2" color="text.secondary">
+              {mockCollection.description}
+            </Typography>
+          </Paper>
+        </Box>
+      )}
     </Container>
   );
 }
+
+export default OutfitCollectionPage;
