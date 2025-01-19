@@ -21,63 +21,84 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { 
     generateItemMetadata,
 } from '@/src/lib/firebase/wardrobe.firestore';
+
 /**
  * Creates a new outfit collection for a user
  * @param {string} userId - The ID of the user
  * @param {Object} collectionData - The collection data
- * @param {string} collectionData.name - The name of the collection
- * @param {string} collectionData.description - The description of the collection
- * @param {Object[]} collectionData.inspirationImages - Array of objects containing inspiration image files
- * @param {File} collectionData.inspirationImages.file - The inspiration image file
+ * @param {string} collectionData.prompt - Optional user prompt for collection creation
  * @returns {Promise<string>} The ID of the created collection
  */
 export async function createOutfitCollection(userId, collectionData) {
     try {
-        // First, analyze all inspiration images
-        const imageAnalysisPromises = collectionData.inspirationImages.map(async (image) => {
-            const metadata = await generateItemMetadata(image.file);
-            return metadata;
-        });
+        // Get user's wardrobe items with metadata
+        const wardrobeRef = collection(db, `users/${userId}/wardrobe_items`);
+        const wardrobeSnapshot = await getDocs(wardrobeRef);
+        const wardrobeItems = wardrobeSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
 
-        // Wait for all image analyses to complete
-        // If any analysis fails, the entire Promise.all will fail
-        const imageMetadataList = await Promise.all(imageAnalysisPromises);
+        // Get existing collections for context
+        const collectionsRef = collection(db, 'users', userId, 'outfitCollections');
+        const collectionsSnapshot = await getDocs(collectionsRef);
+        const existingCollections = collectionsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
 
-        // Generate collection metadata using all image metadata
-        const collectionMetadata = await generateCollectionMetadata(imageMetadataList);
+        // Generate collection metadata using Gemini
+        const genAI = new GoogleGenerativeAI("AIzaSyBizf6hwPtSmiVUrtEqcg6apnDewYVDVXw");
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-        // Create collection document first to get the ID
-        const collectionRef = collection(db, 'users', userId, 'outfitCollections');
-        const docRef = await addDoc(collectionRef, {
-            name: collectionData.name,
-            description: collectionData.description,
-            inspirationImages: [], // Will be updated after image upload
+        const prompt = `Based on the following wardrobe items and existing collections, ${collectionData.prompt ? 
+            `create a collection that matches this description: "${collectionData.prompt}"` : 
+            'suggest a new and unique collection that would work well with these items'}.
+
+Wardrobe Items (with detailed metadata):
+${wardrobeItems.map(item => `
+- ${item.name}:
+  Description: ${item.description}
+  Colors: ${item.colors?.join(', ')}
+  Styles: ${item.styles?.join(', ')}
+  Occasions: ${item.occasions?.join(', ')}
+  Category: ${item.category}
+`).join('\n')}
+
+Existing Collections:
+${existingCollections.map(col => `- ${col.name}: ${col.description}`).join('\n')}
+
+Please provide the following in JSON format:
+{
+    "name": "Collection name (max 50 chars)",
+    "description": "Detailed description of the collection style and theme (max 500 chars)",
+    "tags": ["array", "of", "style", "tags"],
+    "styleGuide": "Brief style guide for creating outfits in this collection",
+    "suggestedOccasions": ["array", "of", "occasions", "this", "collection", "works", "for"]
+}`;
+
+        const result = await model.generateContent(prompt);
+        const response = result.response;
+        const metadata = JSON.parse(response.text());
+
+        // Create collection document
+        const docRef = await addDoc(collectionsRef, {
+            name: metadata.name,
+            description: metadata.description,
+            metadata: {
+                tags: metadata.tags,
+                styleGuide: metadata.styleGuide,
+                suggestedOccasions: metadata.suggestedOccasions,
+                userPrompt: collectionData.prompt || null,
+                generatedAt: serverTimestamp(),
+            },
             outfits: [],
-            metadata: collectionMetadata,
             createdAt: serverTimestamp(),
-        });
-
-        // Upload inspiration images with collection ID and create enriched image objects
-        const imageUploadPromises = collectionData.inspirationImages.map(async (image, index) => {
-            const url = await uploadInspirationImage(userId, image.file, docRef.id);
-            return {
-                url,
-                metadata: imageMetadataList[index]
-            };
-        });
-
-        // Wait for all image uploads to complete
-        const enrichedInspirationImages = await Promise.all(imageUploadPromises);
-
-        // Update collection with enriched image data
-        await updateDoc(docRef, {
-            inspirationImages: enrichedInspirationImages
         });
 
         return docRef.id;
     } catch (error) {
         console.error('Error creating outfit collection:', error);
-        // If any step fails, we'll throw the error and let the caller handle it
         throw error;
     }
 }

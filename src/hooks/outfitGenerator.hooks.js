@@ -63,12 +63,14 @@ export function useCreateCollection() {
         if (!user?.uid) {
             throw new Error('User must be logged in to create a collection');
         }
-        console.log('useCreateCollection - createCollection', collectionData);
+        
         setIsCreating(true);
         setError(null);
 
         try {
-            const collectionId = await createOutfitCollection(user.uid, collectionData);
+            const collectionId = await createOutfitCollection(user.uid, {
+                prompt: collectionData.prompt || '',
+            });
             return collectionId;
         } catch (err) {
             console.error('Error creating collection:', err);
