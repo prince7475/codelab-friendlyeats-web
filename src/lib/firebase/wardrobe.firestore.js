@@ -15,6 +15,81 @@ import { db } from "@/src/lib/firebase/clientApp";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Export the function for use in hooks
+export async function generateMultipleItemsMetadata(files) {
+    try {
+        const genAI = new GoogleGenerativeAI("AIzaSyBizf6hwPtSmiVUrtEqcg6apnDewYVDVXw");
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        const metadataPromises = files.map(async (file) => {
+            // Convert file to base64
+            const base64data = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.readAsDataURL(file);
+            });
+
+            // Prepare the prompt
+            const prompt = `Analyze this clothing item image and provide:
+            1. A brief name for the item
+            2. A detailed description of the item
+            3. Colors present in the item (up to 10 color tags)
+            4. Style tags that describe this item's style (up to 10 tags)
+            5. Occasions where this item would be appropriate (up to 10 occasions)
+            6. A category for this item
+            7. Whether this is a wearable clothing item (true/false)
+            8. A confidence score (0-100) for this analysis
+
+            For colors, include both specific shades (e.g., navy blue, forest green) and basic colors (e.g., blue, green).
+            For styles, include descriptive terms like: casual, formal, bohemian, streetwear, etc.
+            For occasions, include specific scenarios like: office work, casual friday, beach day, formal dinner, etc.
+
+            Return ONLY a JSON object with these exact keys (no markdown formatting):
+            {
+                "name": string,
+                "description": string,
+                "colors": string[],
+                "styles": string[],
+                "occasions": string[],
+                "category": string,
+                "isWearable": boolean,
+                "confidenceScore": number
+            }`;
+
+            // Generate content
+            const result = await model.generateContent([
+                prompt,
+                {
+                    inlineData: {
+                        mimeType: file.type,
+                        data: base64data
+                    }
+                }
+            ]);
+
+            const response = await result.response;
+            const analysisText = response.text();
+            
+            // Extract JSON from markdown if present
+            const jsonMatch = analysisText.match(/```json\n([\s\S]*?)\n```/) || [null, analysisText];
+            const jsonString = jsonMatch[1].trim();
+            
+            // Parse the JSON response
+            const analysis = JSON.parse(jsonString);
+
+            if (!analysis.isWearable) {
+                throw new Error("The uploaded image does not appear to be a wearable clothing item");
+            }
+
+            return analysis;
+        });
+
+        return Promise.all(metadataPromises);
+    } catch (error) {
+        console.error("Error analyzing items:", error);
+        throw new Error("Failed to analyze clothing items. Please try again.");
+    }
+}
+
 export async function generateItemMetadata(file) {
     try {
         const genAI = new GoogleGenerativeAI("AIzaSyBizf6hwPtSmiVUrtEqcg6apnDewYVDVXw");

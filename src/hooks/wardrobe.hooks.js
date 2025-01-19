@@ -6,10 +6,11 @@ import {
     uploadWardrobeImage, 
     deleteWardrobeImage 
 } from '@/src/lib/firebase/storage';
-import { 
-    addWardrobeItem, 
-    deleteWardrobeItem, 
+import {
+    addWardrobeItem,
+    deleteWardrobeItem,
     generateItemMetadata,
+    generateMultipleItemsMetadata,
     getWardrobeItemsSnapshot
 } from '@/src/lib/firebase/wardrobe.firestore';
 
@@ -135,8 +136,11 @@ export function useUploadMultipleItems() {
         setError(null);
 
         try {
-            // Process files in parallel with Promise.all
-            const uploadPromises = Array.from(files).map(async (file, index) => {
+            // Get metadata for all files at once
+            const metadataArray = await generateMultipleItemsMetadata(files);
+
+            // Upload files and add item data to Firestore
+            const uploadPromises = files.map(async (file, index) => {
                 try {
                     // Initialize progress for this file
                     setProgress(prev => ({
@@ -144,24 +148,18 @@ export function useUploadMultipleItems() {
                         [file.name]: 0
                     }));
 
-                    const metadata = await generateItemMetadata(file);
-
-                    // Upload the image first
-                    const imageUrl = await uploadWardrobeImage(user.uid, file, (progress) => {
+                    // Upload the image
+                    const imageUrl = await uploadWardrobeImage(user.uid, file, (uploadProgress) => {
                         setProgress(prev => ({
                             ...prev,
-                            [file.name]: Math.round(progress * 50) // First 50% is upload
+                            [file.name]: Math.round(uploadProgress * 100)
                         }));
                     });
 
-                    // Generate metadata using Gemini AI
-                    setProgress(prev => ({
-                        ...prev,
-                        [file.name]: 75 // 75% when starting AI analysis
-                    }));
+                    // Get corresponding metadata
+                    const metadata = metadataArray[index];
 
-
-                    // Create wardrobe item with AI-generated metadata
+                    // Create wardrobe item with metadata
                     const itemData = {
                         userId: user.uid,
                         imageUrl,
@@ -175,20 +173,8 @@ export function useUploadMultipleItems() {
                         isWearable: metadata.isWearable
                     };
 
-                    // Update progress to show completion of metadata generation
-                    setProgress(prev => ({
-                        ...prev,
-                        [file.name]: 90
-                    }));
-
                     // Add to Firestore
                     const result = await addWardrobeItem(itemData);
-
-                    // Update progress to show completion
-                    setProgress(prev => ({
-                        ...prev,
-                        [file.name]: 100
-                    }));
 
                     return result;
                 } catch (err) {
