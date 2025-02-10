@@ -79,7 +79,48 @@ Please provide the following in JSON format:
 
         const result = await model.generateContent(prompt);
         const response = result.response;
-        const metadata = JSON.parse(response.text());
+
+        // Helper function to clean and parse AI response
+        const cleanAndParseJSON = (text) => {
+            console.group('AI Response Debug');
+            console.log('Raw response:', text);
+            
+            try {
+                // First try direct parsing in case it's already clean JSON
+                try {
+                    const directParse = JSON.parse(text);
+                    console.log('Direct parse successful');
+                    console.groupEnd();
+                    return directParse;
+                } catch (e) {
+                    console.log('Direct parse failed, trying cleanup...');
+                }
+                
+                // Remove markdown code blocks if present
+                let cleaned = text.replace(/```(?:json)?\n?([\s\S]*?)\n?```/gi, '$1');
+                console.log('After markdown cleanup:', cleaned);
+                
+                // Remove any non-JSON text before or after the JSON object
+                cleaned = cleaned.replace(/^[^{]*({[\s\S]*})[^}]*$/, '$1');
+                console.log('After JSON extraction:', cleaned);
+                
+                // Remove any remaining whitespace and normalize
+                cleaned = cleaned.trim();
+                console.log('Final cleaned version:', cleaned);
+                
+                const parsed = JSON.parse(cleaned);
+                console.log('Parse successful:', parsed);
+                console.groupEnd();
+                return parsed;
+            } catch (error) {
+                console.error('All parsing attempts failed:', error);
+                console.log('Failed text:', text);
+                console.groupEnd();
+                throw new Error('Failed to parse AI response: ' + error.message);
+            }
+        };
+
+        const metadata = cleanAndParseJSON(response.text());
 
         // Create collection document
         const docRef = await addDoc(collectionsRef, {
@@ -320,15 +361,56 @@ export async function generateCollectionMetadata(imageMetadataList) {
 
         // Generate content
         const result = await model.generateContent([prompt]);
-        const response = await result.response;
-        const analysisText = response.text();
+        const response = result.response;
+
+        // Helper function to clean and parse AI response
+        const cleanAndParseJSON = (text) => {
+            console.group('AI Response Debug');
+            console.log('Raw response:', text);
+            
+            try {
+                // First try direct parsing in case it's already clean JSON
+                try {
+                    const directParse = JSON.parse(text);
+                    console.log('Direct parse successful');
+                    console.groupEnd();
+                    return directParse;
+                } catch (e) {
+                    console.log('Direct parse failed, trying cleanup...');
+                }
+                
+                // Remove markdown code blocks if present
+                let cleaned = text.replace(/```(?:json)?\n?([\s\S]*?)\n?```/gi, '$1');
+                console.log('After markdown cleanup:', cleaned);
+                
+                // Remove any non-JSON text before or after the JSON object
+                cleaned = cleaned.replace(/^[^{]*({[\s\S]*})[^}]*$/, '$1');
+                console.log('After JSON extraction:', cleaned);
+                
+                // Remove any remaining whitespace and normalize
+                cleaned = cleaned.trim();
+                console.log('Final cleaned version:', cleaned);
+                
+                const parsed = JSON.parse(cleaned);
+                console.log('Parse successful:', parsed);
+                console.groupEnd();
+                return parsed;
+            } catch (error) {
+                console.error('All parsing attempts failed:', error);
+                console.log('Failed text:', text);
+                console.groupEnd();
+                throw new Error('Failed to parse AI response: ' + error.message);
+            }
+        };
+
+        const metadata = cleanAndParseJSON(response.text());
         
         // Extract JSON from markdown if present
-        const jsonMatch = analysisText.match(/```json\n([\s\S]*?)\n```/) || [null, analysisText];
-        const jsonString = jsonMatch[1].trim();
+        // const jsonMatch = analysisText.match(/```json\n([\s\S]*?)\n```/) || [null, analysisText];
+        // const jsonString = jsonMatch[1].trim();
         
         // Parse the JSON response
-        return JSON.parse(jsonString);
+        return metadata;
     } catch (error) {
         console.error("Error generating collection metadata:", error);
         throw new Error("Failed to analyze collection style. Please try again.");
@@ -387,16 +469,50 @@ export async function generateOutfitSuggestion({ collectionDescription, collecti
 
         // Generate content
         const result = await model.generateContent([prompt]);
-        const response = await result.response;
-        const analysisText = response.text();
-        
-        // Extract JSON from markdown if present
-        const jsonMatch = analysisText.match(/```json\n([\s\S]*?)\n```/) || [null, analysisText];
-        const jsonString = jsonMatch[1].trim();
-        
-        // Parse the JSON response
-        const suggestion = JSON.parse(jsonString);
+        const response = result.response;
 
+        // Helper function to clean and parse AI response
+        const cleanAndParseJSON = (text) => {
+            console.group('AI Response Debug');
+            console.log('Raw response:', text);
+            
+            try {
+                // First try direct parsing in case it's already clean JSON
+                try {
+                    const directParse = JSON.parse(text);
+                    console.log('Direct parse successful');
+                    console.groupEnd();
+                    return directParse;
+                } catch (e) {
+                    console.log('Direct parse failed, trying cleanup...');
+                }
+                
+                // Remove markdown code blocks if present
+                let cleaned = text.replace(/```(?:json)?\n?([\s\S]*?)\n?```/gi, '$1');
+                console.log('After markdown cleanup:', cleaned);
+                
+                // Remove any non-JSON text before or after the JSON object
+                cleaned = cleaned.replace(/^[^{]*({[\s\S]*})[^}]*$/, '$1');
+                console.log('After JSON extraction:', cleaned);
+                
+                // Remove any remaining whitespace and normalize
+                cleaned = cleaned.trim();
+                console.log('Final cleaned version:', cleaned);
+                
+                const parsed = JSON.parse(cleaned);
+                console.log('Parse successful:', parsed);
+                console.groupEnd();
+                return parsed;
+            } catch (error) {
+                console.error('All parsing attempts failed:', error);
+                console.log('Failed text:', text);
+                console.groupEnd();
+                throw new Error('Failed to parse AI response: ' + error.message);
+            }
+        };
+
+        const suggestion = cleanAndParseJSON(response.text());
+        
         // Validate that all selected items exist in wardrobe
         const wardrobeIds = new Set(wardrobeItems.map(item => item.id));
         const allItemsExist = suggestion.items.every(item => wardrobeIds.has(item.id));
